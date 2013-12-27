@@ -7,12 +7,12 @@ import Learner;
 
 void main() {
     writeln("Hello World!");
-    Observation[] data = IO.load_data("test_data/example_train.txt");
+    InMemoryData data = new InMemoryData("test_data/example_train.txt");
 
     Learner learner = new Learner();
-    learner.learn(data, 0.1);
+    learner.learn(data.data, 0.1);
     
-    Observation[] test_data = IO.load_data("test_data/example_test.txt");
+    InMemoryData test_data = new InMemoryData("test_data/example_test.txt");
 
 
     float error = 0;
@@ -23,7 +23,7 @@ void main() {
         error += (pred - obs.label) * (pred - obs.label);
         writeln(to!string(obs.label) ~ ";" ~ to!string(pred));
     }
-    error /= test_data.length;
+    error /= test_data.data.length;
 
     writeln("Total error: " ~ to!string(error));
 }
