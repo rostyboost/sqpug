@@ -3,6 +3,7 @@ module Learner;
 import std.conv;
 import std.random;
 import std.stdio;
+import std.range;
 
 import IO;
 
@@ -17,7 +18,7 @@ class Learner {
         return uniform(0, n, _gen);
     } 
 
-    void learn(Observation[] data, float lambda)
+    void learn(ref Observation[] data, const float lambda)
     {
         ulong n = data.length;
 
@@ -25,7 +26,7 @@ class Learner {
         for(int i = 0; i < n; ++i)
             dual_vars[i] = 0;
 
-        for(int i=0; i < 1000; ++i)
+        for(int i=0; i < 10_000_000; ++i)
         {
             ulong index = this._next_rnd_index(n);
             Observation ex = data[index];
@@ -49,7 +50,7 @@ class Learner {
         }
     }
 
-    float predict(Feature[] features)
+    float predict(ref Feature[] features)
     {
         float dotProd = 0;
         foreach(Feature feat; features)

@@ -9,17 +9,17 @@ alias Tuple!(int, float) Feature;
 
 class Observation {
 
-    int label;
+    float label;
     Feature[] features;
 
-    this(int label_, Feature[] features_)
+    this(float label_, Feature[] features_)
     {
         label = label_;
         features = features_;
     }
 }
 
-Observation[] load_data(string file_path)
+Observation[] load_data(const string file_path)
 {
     auto f = File(file_path, "r"); // open for reading
 
@@ -29,7 +29,7 @@ Observation[] load_data(string file_path)
     {
         debug writeln(line);
         auto tokens = split(line, " | ");
-        int label = to!int(tokens[0]);
+        float label = to!float(tokens[0]);
         
         auto feats_tokens = split(tokens[1]);
         Feature[] features;
