@@ -26,9 +26,11 @@ class InMemoryData {
     Observation[] data;
 
     private ulong _current_cnt;
+    private uint _bitMask;
 
-    this(const string file_path)
+    this(const string file_path, const ushort bits)
     {
+        this._bitMask = (1 << bits);
         this.data = this.load_data(file_path);
         this._current_cnt = 0;
     }
@@ -50,6 +52,7 @@ class InMemoryData {
             {
                 auto str_tuple = split(token, ":");
                 uint feature_hash = Hasher.Hasher.MurmurHash3(str_tuple[0]);
+                feature_hash = feature_hash % this._bitMask; //TODO: force D bit masking...
                 features ~= Feature(feature_hash, to!float(str_tuple[1]));
             }
             data ~= new Observation(label, features);

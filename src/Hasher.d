@@ -20,7 +20,6 @@ class Hasher {
     }
 
     public static uint MurmurHash3(const char[] key, uint seed = 42)
-    //uint MurmurHash3(const void* key, int len, uint seed)
     {
       const ubyte * data = cast(const(ubyte*))key;
       uint len = cast(uint)key.length;
