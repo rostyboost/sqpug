@@ -11,7 +11,7 @@ import IO;
 class Learner {
 
     private Random _gen;
-    float[int] weights;
+    float[uint] weights;
 
     private ulong _next_rnd_index(const ulong n)
     {
@@ -26,7 +26,7 @@ class Learner {
         for(int i = 0; i < n; ++i)
             dual_vars[i] = 0;
 
-        for(int i=0; i < 10_000_000; ++i)
+        for(int i=0; i < 100_000; ++i)
         {
             ulong index = this._next_rnd_index(n);
             Observation ex = data[index];
@@ -55,9 +55,8 @@ class Learner {
         float dotProd = 0;
         foreach(Feature feat; features)
         {
-            if (! (feat[0] in this.weights))
-                this.weights[feat[0]] = 0;
-            dotProd += this.weights[feat[0]] * feat[1];
+            if (feat[0] in this.weights)
+                dotProd += this.weights[feat[0]] * feat[1];
         }
         return dotProd;
     }

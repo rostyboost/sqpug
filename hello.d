@@ -10,7 +10,7 @@ void main() {
     InMemoryData data = new InMemoryData("test_data/example_train.txt");
 
     Learner learner = new Learner();
-    learner.learn(data.data, 0.1);
+    learner.learn(data.data, 0.25);
     
     InMemoryData test_data = new InMemoryData("test_data/example_test.txt");
 

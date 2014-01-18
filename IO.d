@@ -35,7 +35,7 @@ class InMemoryData {
 
     Observation[] load_data(const string file_path)
     {
-        auto f = File(file_path, "r"); // open file for reading
+        auto f = File(file_path, "r");
 
         Observation[] data;
 
@@ -50,8 +50,7 @@ class InMemoryData {
             {
                 auto str_tuple = split(token, ":");
                 uint feature_hash = Hasher.Hasher.MurmurHash3(str_tuple[0]);
-                features ~= Feature(feature_hash,
-                                    to!float(str_tuple[1]));
+                features ~= Feature(feature_hash, to!float(str_tuple[1]));
             }
             data ~= new Observation(label, features);
         }
