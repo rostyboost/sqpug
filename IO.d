@@ -5,7 +5,9 @@ import std.conv;
 import std.stdio;
 import std.typecons;
 
-alias Tuple!(int, float) Feature;
+import Hasher;
+
+alias Tuple!(uint, float) Feature;
 
 class Observation {
 
@@ -33,13 +35,12 @@ class InMemoryData {
 
     Observation[] load_data(const string file_path)
     {
-        auto f = File(file_path, "r"); // open for reading
+        auto f = File(file_path, "r"); // open file for reading
 
         Observation[] data;
 
         foreach (char[] line; lines(f))
         {
-            debug writeln(line);
             auto tokens = split(line, " | ");
             float label = to!float(tokens[0]);
 
@@ -48,13 +49,12 @@ class InMemoryData {
             foreach(char[] token; feats_tokens)
             {
                 auto str_tuple = split(token, ":");
-                features ~= Feature(to!int(str_tuple[0]),
+                uint feature_hash = Hasher.Hasher.MurmurHash3(str_tuple[0]);
+                features ~= Feature(feature_hash,
                                     to!float(str_tuple[1]));
             }
-
             data ~= new Observation(label, features);
         }
-
         return data;
     }
 
