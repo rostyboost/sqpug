@@ -5,9 +5,16 @@ import std.stdio;
 import IO;
 import Learner;
 
+enum LossType {
+    squared = "squared",
+    logistic = "logistic"
+}
+
 struct Options {
     string data; // input data path
     ushort bits; // number of bits for hashing trick
+    LossType loss;
+    float lambda;
 }
 
 
@@ -18,12 +25,14 @@ void main(string[] args) {
     getopt(
         args,
         "data", &opts.data,
-        "bits", &opts.bits);
+        "bits", &opts.bits,
+        "loss", &opts.loss,
+        "lambda", &opts.lambda);
 
     InMemoryData data = new InMemoryData(opts.data, opts.bits);
 
     Learner learner = new Learner();
-    learner.learn(data.data, 0.25);
+    learner.learn(data.data, opts.lambda);
     
     InMemoryData test_data = new InMemoryData("test_data/example_test.txt",
                                               opts.bits);

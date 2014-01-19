@@ -13,6 +13,8 @@ class Learner {
     private Random _gen;
     float[uint] weights;
 
+    float intercept;
+
     private ulong _next_rnd_index(const ulong n)
     {
         return uniform(0, n, _gen);
@@ -25,8 +27,9 @@ class Learner {
         float[] dual_vars = new float[n];
         for(int i = 0; i < n; ++i)
             dual_vars[i] = 0;
+        this.intercept = 0;
 
-        for(int i=0; i < 100_000; ++i)
+        for(int i=0; i < 1_000_000; ++i)
         {
             ulong index = this._next_rnd_index(n);
             Observation ex = data[index];
@@ -47,12 +50,13 @@ class Learner {
             {
                 this.weights[feat[0]] += delta_dual * feat[1] / (lambda * n);
             }
+            this.intercept += delta_dual / (lambda * n);
         }
     }
 
     float predict(ref Feature[] features)
     {
-        float dotProd = 0;
+        float dotProd = this.intercept;
         foreach(Feature feat; features)
         {
             if (feat[0] in this.weights)
