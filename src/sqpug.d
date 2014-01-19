@@ -31,7 +31,7 @@ void main(string[] args) {
 
     InMemoryData data = new InMemoryData(opts.data, opts.bits);
 
-    Learner learner = new Learner();
+    Learner learner = new Learner(opts.bits);
     learner.learn(data.data, opts.lambda);
     
     InMemoryData test_data = new InMemoryData("test_data/example_test.txt",
