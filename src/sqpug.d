@@ -2,20 +2,9 @@ import std.conv;
 import std.getopt;
 import std.stdio;
 
+import Common;
 import IO;
 import Learner;
-
-enum LossType {
-    squared = "squared",
-    logistic = "logistic"
-}
-
-struct Options {
-    string data; // input data path
-    ushort bits; // number of bits for hashing trick
-    LossType loss;
-    float lambda;
-}
 
 
 void main(string[] args) {
@@ -27,19 +16,17 @@ void main(string[] args) {
         "data", &opts.data,
         "bits", &opts.bits,
         "loss", &opts.loss,
-        "lambda", &opts.lambda);
+        "lambda", &opts.lambda,
+        "test", &opts.test);
 
     InMemoryData data = new InMemoryData(opts.data, opts.bits);
 
     Learner learner = new Learner(opts.bits);
     learner.learn(data.data, opts.lambda);
-    
-    InMemoryData test_data = new InMemoryData("test_data/example_test.txt",
-                                              opts.bits);
 
+    InMemoryData test_data = new InMemoryData(opts.test, opts.bits);
 
     float error = 0;
-
     foreach(Observation obs; test_data)
     {
         float pred = learner.predict(obs.features);

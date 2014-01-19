@@ -37,7 +37,9 @@ class InMemoryData {
 
     Observation[] load_data(const string file_path)
     {
-        auto f = File(file_path, "r");
+        auto f = stdin;
+        if (file_path != "")
+            f = File(file_path, "r");
 
         Observation[] data;
 
