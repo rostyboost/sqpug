@@ -5,6 +5,7 @@ import std.stdio;
 import Common;
 import IO;
 import Learner;
+import Serializer;
 
 
 void main(string[] args) {
@@ -17,12 +18,23 @@ void main(string[] args) {
         "bits", &opts.bits,
         "loss", &opts.loss,
         "lambda", &opts.lambda,
-        "test", &opts.test);
+        "test", &opts.test,
+        "model_out", &opts.model_out,
+        "model_in", &opts.model_in);
 
-    InMemoryData data = new InMemoryData(opts.data, opts.bits);
+    Learner learner;
+    if(opts.model_in == "")
+    {
+        InMemoryData data = new InMemoryData(opts.data, opts.bits);
 
-    Learner learner = new Learner(opts.bits);
-    learner.learn(data.data, opts.lambda);
+        learner = new Learner(opts.bits);
+        learner.learn(data.data, opts.lambda);
+    }
+    else
+        learner = Serializer.load_model(opts.model_in);
+
+    if(opts.model_out != "")
+        Serializer.dump_model(learner, opts, opts.model_out);
 
     InMemoryData test_data = new InMemoryData(opts.test, opts.bits);
 

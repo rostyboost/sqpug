@@ -59,6 +59,8 @@ class InMemoryData {
             }
             data ~= new Observation(label, features);
         }
+        if (file_path != "")
+            f.close();
         return data;
     }
 

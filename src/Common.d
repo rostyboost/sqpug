@@ -11,4 +11,6 @@ struct Options {
     LossType loss;
     float lambda;
     string test; // test data path
+    string model_out; // path where to dump the model learnt
+    string model_in; // path from where to load the model
 }
