@@ -1,5 +1,6 @@
 module Learner;
 
+import std.math;
 import std.conv;
 import std.random;
 import std.stdio;
@@ -17,6 +18,7 @@ class Learner {
 
     this(const uint bits)
     {
+        _gen.seed(42);
         this.weights = new float[1 << bits];
         for(int i = 0; i < this.weights.length; ++i)
             this.weights[i] = 0;
@@ -31,12 +33,18 @@ class Learner {
     void learn(ref Observation[] data, const float lambda)
     {
         ulong n = data.length;
-
+        stderr.writeln(
+            "Starting learning on " ~ to!string(n) ~ " datapoints.");
         float[] dual_vars = new float[n];
         for(int i = 0; i < n; ++i)
             dual_vars[i] = 0;
 
-        for(int i=0; i < 2_000_000; ++i)
+        uint ind = 0;
+        float delta_gap = 1;
+        float last_gap = 1;
+        float epsilon = 1e-10;
+        while( ind < n || delta_gap > epsilon)
+        //for(int i=0; i < 1000; ++i)
         {
             ulong index = this._next_rnd_index(n);
             Observation ex = data[index];
@@ -58,7 +66,40 @@ class Learner {
                 this.weights[feat[0]] += delta_dual * feat[1] / (lambda * n);
             }
             this.intercept += delta_dual / (lambda * n);
+
+            // stoping criterion: duality gap
+            if(ind > n && ind % n/5 == 0)
+            {
+                float gap = this._duality_gap(data, dual_vars, lambda);
+                delta_gap = abs((gap - last_gap)/last_gap);
+                last_gap = gap;
+            }
+            ind += 1;
         }
+        writeln(ind);
+    }
+
+    private float _duality_gap(ref Observation[] data,
+                               ref float[] dual_vars,
+                               const float lambda)
+    {
+        float gap = 0;
+        ulong n = data.length;
+        for(int i = 0; i < n; ++i)
+        {
+            float pred = this.predict(data[i].features);
+            gap += (pred - data[i].label) * (pred - data[i].label);
+            gap += (dual_vars[i] * dual_vars[i]
+                    - 2 * dual_vars[i] * data[i].label);
+        }
+        gap /= (2 * n);
+
+        float norm = 0;
+        foreach(float w; this.weights)
+            norm += w * w;
+        gap += lambda * norm;
+
+        return gap;
     }
 
     float predict(ref Feature[] features)
