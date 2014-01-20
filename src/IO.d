@@ -5,6 +5,7 @@ import std.conv;
 import std.stdio;
 import std.typecons;
 
+import Common;
 import Hasher;
 
 alias Tuple!(uint, float) Feature;
@@ -26,22 +27,28 @@ class InMemoryData {
     Observation[] data;
 
     private ulong _current_cnt;
-    private uint _bitMask;
 
-    this(const string file_path, const ushort bits)
+    this(const string file_path, const Options opts)
     {
-        this._bitMask = (1 << bits);
-        this.data = this.load_data(file_path);
-        this._current_cnt = 0;
-    }
-
-    Observation[] load_data(const string file_path)
-    {
-        auto f = stdin;
+        File f = stdin;
         if (file_path != "")
             f = File(file_path, "r");
 
+        if(opts.data_format == DataFormat.sparse)
+            this.data = this.load_sparse(f, opts.bits);
+        else if(opts.data_format == DataFormat.dense)
+            this.data = this.load_dense(f);
+
+        if (file_path != "")
+            f.close();
+
+        this._current_cnt = 0;
+    }
+
+    Observation[] load_sparse(File f, const uint bits)
+    {
         Observation[] data;
+        uint bitMask = (1 << bits);
 
         foreach (char[] line; lines(f))
         {
@@ -54,13 +61,18 @@ class InMemoryData {
             {
                 auto str_tuple = split(token, ":");
                 uint feature_hash = Hasher.Hasher.MurmurHash3(str_tuple[0]);
-                feature_hash = feature_hash % this._bitMask; //TODO: force D bit masking...
+                feature_hash = feature_hash % bitMask; //TODO: force D bit masking...
                 features ~= Feature(feature_hash, to!float(str_tuple[1]));
             }
             data ~= new Observation(label, features);
         }
-        if (file_path != "")
-            f.close();
+        return data;
+    }
+
+    Observation[] load_dense(File f)
+    {
+        Observation[] data;
+        // TODO
         return data;
     }
 

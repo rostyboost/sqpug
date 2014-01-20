@@ -20,12 +20,13 @@ void main(string[] args) {
         "lambda", &opts.lambda,
         "test", &opts.test,
         "model_out", &opts.model_out,
-        "model_in", &opts.model_in);
+        "model_in", &opts.model_in,
+        "format", &opts.data_format);
 
     Learner learner;
     if(opts.model_in == "")
     {
-        InMemoryData data = new InMemoryData(opts.data, opts.bits);
+        InMemoryData data = new InMemoryData(opts.data, opts);
 
         learner = new Learner(opts.bits);
         learner.learn(data.data, opts.lambda);
@@ -36,7 +37,7 @@ void main(string[] args) {
     if(opts.model_out != "")
         Serializer.dump_model(learner, opts, opts.model_out);
 
-    InMemoryData test_data = new InMemoryData(opts.test, opts.bits);
+    InMemoryData test_data = new InMemoryData(opts.test, opts);
 
     float error = 0;
     foreach(Observation obs; test_data)

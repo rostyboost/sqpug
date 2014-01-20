@@ -2,7 +2,12 @@ module Common;
 
 enum LossType {
     squared = "squared",
-    logistic = "logistic"
+    logistic = "logistic",
+}
+
+enum DataFormat {
+    sparse = "sparse",
+    dense = "dense",
 }
 
 struct Options {
@@ -13,4 +18,5 @@ struct Options {
     string test; // test data path
     string model_out; // path where to dump the model learnt
     string model_in; // path from where to load the model
+    DataFormat data_format;
 }

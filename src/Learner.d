@@ -42,7 +42,7 @@ class Learner {
         uint ind = 0;
         float delta_gap = 1;
         float last_gap = 1;
-        float epsilon = 1e-10;
+        float epsilon = 1e-6;
         while( ind < n || delta_gap > epsilon)
         //for(int i=0; i < 1000; ++i)
         {
@@ -71,7 +71,7 @@ class Learner {
             if(ind > n && ind % n/5 == 0)
             {
                 float gap = this._duality_gap(data, dual_vars, lambda);
-                delta_gap = abs((gap - last_gap)/last_gap);
+                delta_gap = 0.8 * delta_gap + 0.2 * abs((gap - last_gap)/last_gap);
                 last_gap = gap;
             }
             ind += 1;
