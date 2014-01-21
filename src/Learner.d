@@ -35,6 +35,7 @@ class Learner {
         ulong n = data.length;
         stderr.writeln(
             "Starting learning on " ~ to!string(n) ~ " datapoints.");
+        //stderr.writeln(data);
         float[] dual_vars = new float[n];
         for(int i = 0; i < n; ++i)
             dual_vars[i] = 0;

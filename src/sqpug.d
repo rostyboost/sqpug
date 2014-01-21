@@ -37,17 +37,20 @@ void main(string[] args) {
     if(opts.model_out != "")
         Serializer.dump_model(learner, opts, opts.model_out);
 
-    InMemoryData test_data = new InMemoryData(opts.test, opts);
-
-    float error = 0;
-    foreach(Observation obs; test_data)
+    if(opts.test != "")
     {
-        float pred = learner.predict(obs.features);
-        error += (pred - obs.label) * (pred - obs.label);
-        writeln(to!string(obs.label) ~ ";" ~ to!string(pred));
-    }
-    error /= test_data.data.length;
+        InMemoryData test_data = new InMemoryData(opts.test, opts);
 
-    writeln("Total error: " ~ to!string(error));
+        float error = 0;
+        foreach(Observation obs; test_data)
+        {
+            float pred = learner.predict(obs.features);
+            error += (pred - obs.label) * (pred - obs.label);
+            writeln(to!string(obs.label) ~ ";" ~ to!string(pred));
+        }
+        error /= test_data.data.length;
+
+        writeln("Total error: " ~ to!string(error));
+    }
 }
 
