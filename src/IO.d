@@ -48,7 +48,7 @@ class InMemoryData {
     Observation[] load_sparse(ref File f, const uint bits)
     {
         Observation[] data;
-        uint bitMask = (1 << bits);
+        uint bitMask = (1 << bits) - 1;
 
         foreach (char[] line; lines(f))
         {
@@ -61,7 +61,7 @@ class InMemoryData {
             {
                 auto str_tuple = split(token, ":");
                 uint feature_hash = Hasher.Hasher.MurmurHash3(str_tuple[0]);
-                feature_hash = feature_hash % bitMask; //TODO: force D bit masking...
+                feature_hash = feature_hash & bitMask;
                 features ~= Feature(feature_hash, to!float(str_tuple[1]));
             }
             data ~= new Observation(label, features);
