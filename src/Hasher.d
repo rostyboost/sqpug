@@ -1,6 +1,10 @@
 module Hasher;
 
 class Hasher {
+    // MurmurHash3 was written by Austin Appleby, and is placed in the public
+    // domain. The author hereby disclaims copyright to this source code.
+    //
+    // Original C++ source code at: https://code.google.com/p/smhasher/
 
     private static uint _rotl32(uint x, int r)
     {
@@ -19,7 +23,7 @@ class Hasher {
       return h;
     }
 
-    public static uint MurmurHash3(const char[] key, uint seed = 42)
+    public static uint MurmurHash3(const ref char[] key, uint seed = 42)
     {
       const ubyte * data = cast(const(ubyte*))key;
       uint len = cast(uint)key.length;

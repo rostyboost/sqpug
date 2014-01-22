@@ -5,6 +5,11 @@ enum LossType {
     logistic = "logistic",
 }
 
+enum Regularizer {
+    l2 = "l2",
+    l1 = "l1",
+}
+
 enum DataFormat {
     sparse = "sparse",
     dense = "dense",
