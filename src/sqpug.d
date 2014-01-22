@@ -45,12 +45,12 @@ void main(string[] args) {
         foreach(Observation obs; test_data)
         {
             float pred = learner.predict(obs.features);
+            stdout.writeln(pred);
             error += (pred - obs.label) * (pred - obs.label);
-            writeln(to!string(obs.label) ~ ";" ~ to!string(pred));
         }
         error /= test_data.data.length;
 
-        writeln("Total error: " ~ to!string(error));
+        stderr.writeln("Total error: ", error);
     }
 }
 

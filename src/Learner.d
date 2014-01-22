@@ -33,9 +33,7 @@ class Learner {
     void learn(ref Observation[] data, const float lambda)
     {
         ulong n = data.length;
-        stderr.writeln(
-            "Starting learning on " ~ to!string(n) ~ " datapoints.");
-        //stderr.writeln(data);
+        stderr.writeln("Starting learning on ", n, " datapoints.");
         float[] dual_vars = new float[n];
         for(int i = 0; i < n; ++i)
             dual_vars[i] = 0;
@@ -77,7 +75,7 @@ class Learner {
             }
             ind += 1;
         }
-        writeln(ind);
+        stderr.writeln("Stopped SDCA after ", ind, " sampled points.");
     }
 
     private float _duality_gap(ref Observation[] data,
@@ -103,7 +101,7 @@ class Learner {
         return gap;
     }
 
-    float predict(ref Feature[] features)
+    final float predict(ref Feature[] features)
     {
         float dotProd = this.intercept;
         foreach(Feature feat; features)

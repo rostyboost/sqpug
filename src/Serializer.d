@@ -9,15 +9,16 @@ import std.typecons;
 import Common;
 import Learner;
 
-void dump_model(const Learner model, const Options opts, const string path)
+void dump_model(const ref Learner model, const ref Options opts,
+                const string path)
 {
     auto f = File(path, "w");
 
-    f.writeln("bits:" ~ to!string(opts.bits));
-    f.writeln("loss:" ~ to!string(opts.loss));
-    f.writeln("intercept:" ~ to!string(model.intercept));
+    f.writeln("bits:", opts.bits);
+    f.writeln("loss:", opts.loss);
+    f.writeln("intercept:", model.intercept);
     for(int i = 0; i < model.weights.length; ++i)
-        f.writeln(to!string(i) ~ ":" ~ to!string(model.weights[i]));
+        f.writeln(i, ":", model.weights[i]);
     f.close();
 }
 

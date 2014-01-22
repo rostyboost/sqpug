@@ -15,7 +15,7 @@ class Observation {
     float label;
     Feature[] features;
 
-    this(float label_, Feature[] features_)
+    this(float label_, ref Feature[] features_)
     {
         label = label_;
         features = features_;
@@ -28,7 +28,7 @@ class InMemoryData {
 
     private ulong _current_cnt;
 
-    this(const string file_path, const Options opts)
+    this(const string file_path, const ref Options opts)
     {
         File f = stdin;
         if (file_path != "")
@@ -45,7 +45,7 @@ class InMemoryData {
         this._current_cnt = 0;
     }
 
-    Observation[] load_sparse(File f, const uint bits)
+    Observation[] load_sparse(ref File f, const uint bits)
     {
         Observation[] data;
         uint bitMask = (1 << bits);
@@ -69,7 +69,7 @@ class InMemoryData {
         return data;
     }
 
-    Observation[] load_dense(File f)
+    Observation[] load_dense(ref File f)
     {
         Observation[] data;
         // TODO
