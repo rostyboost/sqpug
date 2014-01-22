@@ -1,11 +1,13 @@
 module Learner;
 
+import std.algorithm;
 import std.math;
 import std.conv;
 import std.random;
 import std.stdio;
 import std.range;
 
+import Common;
 import IO;
 
 
@@ -16,13 +18,32 @@ class Learner {
 
     float intercept;
 
-    this(const uint bits)
+    void delegate(ref Observation[], float) learn;
+    float delegate(ref Feature[]) predict;
+
+
+    this(const uint bits, const LossType loss)
     {
         _gen.seed(42);
         this.weights = new float[1 << bits];
         for(int i = 0; i < this.weights.length; ++i)
             this.weights[i] = 0;
         this.intercept = 0;
+
+        switch(loss)
+        {
+            case LossType.squared:
+                learn = &learn_squared;
+                predict = &dotProd;
+                break;
+            case LossType.logistic:
+                learn = &learn_logistic;
+                predict = &predict_logistic;
+                break;
+            default:
+                learn = &learn_squared;
+                predict = &dotProd;
+        }
     }
 
     private ulong _next_rnd_index(const ulong n)
@@ -30,7 +51,7 @@ class Learner {
         return uniform(0, n, _gen);
     } 
 
-    void learn(ref Observation[] data, const float lambda)
+    void learn_squared(ref Observation[] data, float lambda)
     {
         ulong n = data.length;
         stderr.writeln("Starting learning on ", n, " datapoints.");
@@ -43,7 +64,7 @@ class Learner {
         float last_gap = 1;
         float epsilon = 1e-6;
         while( ind < n || delta_gap > epsilon)
-        //for(int i=0; i < 1000; ++i)
+        //for(int i=0; i < 6000; ++i)
         {
             ulong index = this._next_rnd_index(n);
             Observation ex = data[index];
@@ -78,6 +99,72 @@ class Learner {
         stderr.writeln("Stopped SDCA after ", ind, " sampled points.");
     }
 
+    float conjugate_logistic(float x)
+    {
+        if(x == 0.0)
+            return 0;
+        return x * log(x) + (1 - x) * log(1.0 - x);
+    }
+
+    void learn_logistic(ref Observation[] data, float lambda)
+    {
+        ulong n = data.length;
+        stderr.writeln("Starting learning on ", n, " datapoints.");
+        float[] dual_vars = new float[n];
+        for(int i = 0; i < n; ++i)
+            dual_vars[i] = 0.0;
+
+        uint ind = 0;
+        float delta_gap = 1;
+        float last_gap = 1;
+        float epsilon = 1e-6;
+        while( ind < n || delta_gap > epsilon)
+        //for(int i=0; i < 70000; ++i)
+        {
+            ulong index = this._next_rnd_index(n);
+            Observation ex = data[index];
+
+            float p = -this.dotProd(ex.features);
+            float sgn = 1.0;
+            if(ex.label == 0.0)
+                sgn = -1.0;
+            p = sgn * p;
+            float l2_norm_x = 0; // TODO: merge with former line
+            foreach(Feature feat; ex.features)
+            {
+                l2_norm_x += feat[1] * feat[1];
+            }
+
+            float q = -1.0/(1.0 + exp(-p)) - dual_vars[index];
+
+            float alpha = dual_vars[index];
+            float phi_star = this.conjugate_logistic(-alpha);
+
+            float delta_dual = 1;
+            if (q != 0)
+                delta_dual = q * min(
+                1,
+                (log(1 + exp(p)) + phi_star + p * alpha + 2 * q *q)/(
+                   q * q * (4 + l2_norm_x/(lambda * n))));
+            dual_vars[index] += delta_dual;
+
+            foreach(Feature feat; ex.features)
+            {
+                this.weights[feat[0]] += -sgn * delta_dual * feat[1] / (lambda * n);
+            }
+            this.intercept += -sgn * delta_dual / (lambda * n);
+            // stoping criterion: duality gap
+            if(ind > n && ind % n/5 == 0)
+            {
+                float gap = this._duality_gap_logistic(data, dual_vars, lambda);
+                delta_gap = 0.8 * delta_gap + 0.2 * abs((gap - last_gap)/last_gap);
+                last_gap = gap;
+            }
+            ind += 1;
+        }
+        stderr.writeln("Stopped SDCA after ", ind, " sampled points.");
+    }
+
     private float _duality_gap(ref Observation[] data,
                                ref float[] dual_vars,
                                const float lambda)
@@ -101,7 +188,29 @@ class Learner {
         return gap;
     }
 
-    final float predict(ref Feature[] features)
+    private float _duality_gap_logistic(ref Observation[] data,
+                               ref float[] dual_vars,
+                               const float lambda)
+    {
+        float gap = 0;
+        ulong n = data.length;
+        for(int i = 0; i < n; ++i)
+        {
+            float p = (2*data[i].label - 1) * this.dotProd(data[i].features);
+            float conj = this.conjugate_logistic(-dual_vars[i]);
+            gap += log(1.0 + exp(p)) + conj;
+        }
+        gap /= n;
+
+        float norm = 0;
+        foreach(float w; this.weights)
+            norm += w * w;
+        gap += lambda * norm;
+
+        return gap;
+    }
+
+    float dotProd(ref Feature[] features)
     {
         float dotProd = this.intercept;
         foreach(Feature feat; features)
@@ -109,5 +218,10 @@ class Learner {
         return dotProd;
     }
 
+    float predict_logistic(ref Feature[] features)
+    {
+        float dotProd = this.dotProd(features);
+        return 1.0 / ( 1.0 + exp(-dotProd));
+    }
 
 }

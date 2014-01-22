@@ -35,7 +35,7 @@ Learner load_model(const string model_path)
     token = split(f.readln(), ":")[1];
     float intercept = to!float(stripRight(token));
 
-    Learner model = new Learner(bits);
+    Learner model = new Learner(bits, loss);
     model.intercept = intercept;
 
     string line;

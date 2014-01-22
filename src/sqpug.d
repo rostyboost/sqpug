@@ -28,7 +28,7 @@ void main(string[] args) {
     {
         InMemoryData data = new InMemoryData(opts.data, opts);
 
-        learner = new Learner(opts.bits);
+        learner = new Learner(opts.bits, opts.loss);
         learner.learn(data.data, opts.lambda);
     }
     else
@@ -42,11 +42,27 @@ void main(string[] args) {
         InMemoryData test_data = new InMemoryData(opts.test, opts);
 
         float error = 0;
-        foreach(Observation obs; test_data)
+        if(opts.loss == LossType.squared)
         {
-            float pred = learner.predict(obs.features);
-            stdout.writeln(pred);
-            error += (pred - obs.label) * (pred - obs.label);
+            foreach(Observation obs; test_data)
+            {
+                float pred = learner.predict(obs.features);
+                //stdout.writeln(pred);
+                error += (pred - obs.label) * (pred - obs.label);
+            }
+        }
+        else
+        {
+            foreach(Observation obs; test_data)
+            {
+                float pred = learner.predict(obs.features);
+                float pred_label = 1;
+                if(pred < 0.5)
+                    pred_label = -1;
+                stdout.writeln(pred);
+                if(pred_label * (2 * obs.label -1) < 0)
+                    error += 1;
+            }
         }
         error /= test_data.data.length;
 
