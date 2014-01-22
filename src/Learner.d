@@ -6,6 +6,7 @@ import std.conv;
 import std.random;
 import std.stdio;
 import std.range;
+import std.parallelism;
 
 import Common;
 import IO;
@@ -67,20 +68,30 @@ class Learner {
         uint ind = 0;
         float delta_gap = 1;
         float last_gap = 1;
-        float epsilon = 1e-6;
+        float epsilon = 1e-8;
+        auto gap_task = task(_duality_gap, data, dual_vars, lambda);
+        bool gotResult = true;
+        float div = 5;
         while( ind < n || delta_gap > epsilon)
-        //for(int i=0; i < 6000; ++i)
         {
+            if(gotResult && ind > n && ind % to!int(n/div) == 0)
+            {
+                gap_task = task(_duality_gap, data, dual_vars, lambda);
+                gap_task.executeInNewThread();
+                gotResult = false;
+                div *= 2;
+            }
             ulong index = this._next_rnd_index(n);
 
             this._learn_internal(data, dual_vars, index, lambda);
 
             // stoping criterion: duality gap
-            if(ind > n && ind % n/5 == 0)
+            if(gap_task.done())
             {
-                float gap = this._duality_gap(data, dual_vars, lambda);
+                float gap = gap_task.yieldForce;
                 delta_gap = 0.8 * delta_gap + 0.2 * abs((gap - last_gap)/last_gap);
                 last_gap = gap;
+                gotResult = true;
             }
             ind += 1;
         }
@@ -159,8 +170,8 @@ class Learner {
     }
 
     private float duality_gap_squared(ref Observation[] data,
-                               ref float[] dual_vars,
-                               float lambda)
+                                      ref float[] dual_vars,
+                                      float lambda)
     {
         float gap = 0;
         ulong n = data.length;
@@ -179,8 +190,8 @@ class Learner {
     }
 
     private float duality_gap_logistic(ref Observation[] data,
-                               ref float[] dual_vars,
-                               float lambda)
+                                       ref float[] dual_vars,
+                                       float lambda)
     {
         float gap = 0;
         ulong n = data.length;
