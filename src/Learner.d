@@ -23,6 +23,7 @@ class Learner {
     private float delegate(ref Observation[], ref float[], float) _duality_gap;
 
     float delegate(ref Feature[]) predict;
+    void delegate(const ref Feature[], ref float[] scores) predict_multiclass;
 
 
     this(const uint bits, const LossType loss)
@@ -45,10 +46,13 @@ class Learner {
                 _duality_gap = &duality_gap_logistic;
                 predict = &predict_logistic;
                 break;
+            case LossType.multiclass_svm:
+                _learn_internal = &learn_multiclass_svm;
+                _duality_gap = &duality_gap_multiclass_svm;
+                predict_multiclass = &predict_multiclass_svm;
+                break;
             default:
-                _learn_internal = &learn_squared;
-                _duality_gap = &duality_gap_squared;
-                predict = &dotProd;
+                goto case LossType.squared;
         }
     }
 
@@ -169,6 +173,65 @@ class Learner {
         this.intercept += -sgn * delta_dual / (lambda * n);
     }
 
+    private bool optimize_dual_internal(ref float[] mu,
+                                        float C,
+                                        ref float[] result,
+                                        ref float[] _mu_hat,
+                                        ref float[] _mu_bar,
+                                        ref float[] _z)
+    {
+        uint k = mu.length;
+        for(int j = 0; j < k; ++j)
+            _mu_hat[j] = max(0, mu[j]);
+        sort!("a > b")(_mu_hat);
+        float s = 0;
+        for(int j = 0; j < k; ++j)
+        {
+            s += _mu_hat[j];
+            _mu_bar[j] = s;
+            _z[j] = min(_mu_bar[j] - (j + 1) * _mu_hat[j], 1);
+        }
+        for(int j = 0; j < k; ++j)
+        {
+            float val = _mu_bar[j]/(1 + (j + 1) * C);
+            if(val >= _z[j] && val <= _z[j + 1])
+            {
+                float treshold = (-val + _mu_bar[j]) / (j + 1);
+                for(int i = 0; i < k; ++i)
+                    result[i] = max(0, mu[i] - treshold);
+                return true;
+            }
+        }
+        uint min_ind = k + 1;
+        for(int j = 0; j < k; ++j)
+            if(_z[j] == 1)
+            {
+                min_ind = j;
+                break;
+            }
+
+        float norm_sq = 0;
+        float diff_norm_sq = 0;
+        float tresh = (-_z[min_ind] + _mu_bar[min_ind])/(min_ind + 1);
+        for(int j = 0; j < k; ++j)
+        {
+            result[j] = max(0, mu[j] - treshold);
+            norm_sq += mu[j] * mu[j];
+            diff_norm_sq += (result[j] - mu[j]) * (result[j] - mu[j]);
+        }
+        if(diff_norm_sq + C < norm_sq)
+            return true;
+        return false;
+    }
+
+    private void learn_multiclass_svm(ref Observation[] data,
+                                      ref float[] dual_vars,
+                                      ulong index, float lambda)
+    {
+
+    }
+
+
     private float duality_gap_squared(ref Observation[] data,
                                       ref float[] dual_vars,
                                       float lambda)
@@ -208,6 +271,13 @@ class Learner {
         return gap;
     }
 
+    private float duality_gap_multiclass_svm(ref Observation[] data,
+                                             ref float[] dual_vars,
+                                             float lambda)
+    {
+        return 0;
+    }
+
     float normsq_weights()
     {
         float normsq = 0;
@@ -228,6 +298,12 @@ class Learner {
     {
         float dotProd = this.dotProd(features);
         return 1.0 / ( 1.0 + exp(-dotProd));
+    }
+
+    void predict_multiclass_svm(const ref Feature[] features,
+                                ref float[] scores)
+    {
+
     }
 
 }

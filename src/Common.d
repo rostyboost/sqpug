@@ -3,6 +3,7 @@ module Common;
 enum LossType {
     squared = "squared",
     logistic = "logistic",
+    multiclass_svm = "multiclass",
 }
 
 enum Regularizer {
