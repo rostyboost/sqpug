@@ -21,14 +21,15 @@ void main(string[] args) {
         "test", &opts.test,
         "model_out", &opts.model_out,
         "model_in", &opts.model_in,
-        "format", &opts.data_format);
+        "format", &opts.data_format,
+        "n_classes", &opts.n_classes);
 
     Learner learner;
     if(opts.model_in == "")
     {
         InMemoryData data = new InMemoryData(opts.data, opts);
 
-        learner = new Learner(opts.bits, opts.loss);
+        learner = new Learner(opts.bits, opts.loss, opts.n_classes);
         learner.learn(data.data, opts.lambda);
     }
     else

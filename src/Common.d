@@ -3,7 +3,7 @@ module Common;
 enum LossType {
     squared = "squared",
     logistic = "logistic",
-    multiclass_svm = "multiclass",
+    multiclass = "multiclass",
 }
 
 enum Regularizer {
@@ -25,4 +25,5 @@ struct Options {
     string model_out; // path where to dump the model learnt
     string model_in; // path from where to load the model
     DataFormat data_format;
+    uint n_classes; // number of classes for multiclass
 }

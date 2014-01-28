@@ -9,6 +9,7 @@ import std.range;
 import std.parallelism;
 
 import Common;
+import Hasher;
 import IO;
 
 
@@ -25,8 +26,20 @@ class Learner {
     float delegate(ref Feature[]) predict;
     void delegate(const ref Feature[], ref float[] scores) predict_multiclass;
 
+    private LossType _lossType;
 
-    this(const uint bits, const LossType loss)
+    // Multi-class specific variables
+    private uint _n_classes;
+    private float[] _a;
+    private float[] _zeros;
+    private float[] _mu_hat;
+    private float[] _mu_bar;
+    private float[] _mu;
+    private float[] _z;
+    private uint[] _multi_seeds;
+    private float[] intercepts;
+
+    this(const uint bits, const LossType loss, const uint n_classes)
     {
         _gen.seed(42);
         this.weights = new float[1 << bits];
@@ -34,6 +47,7 @@ class Learner {
             this.weights[i] = 0;
         this.intercept = 0;
 
+        _lossType = loss;
         switch(loss)
         {
             case LossType.squared:
@@ -46,13 +60,34 @@ class Learner {
                 _duality_gap = &duality_gap_logistic;
                 predict = &predict_logistic;
                 break;
-            case LossType.multiclass_svm:
+            case LossType.multiclass:
                 _learn_internal = &learn_multiclass_svm;
                 _duality_gap = &duality_gap_multiclass_svm;
                 predict_multiclass = &predict_multiclass_svm;
                 break;
             default:
                 goto case LossType.squared;
+        }
+
+        // multiclass-specific initialization
+        _n_classes = n_classes;
+        if(n_classes > 2)
+            this.init_multi();
+    }
+
+    private void init_multi()
+    {
+        for(int i = 0; i < this._n_classes; ++i)
+        {
+            char[] tmp = cast(char[])to!string(93 + i);
+            this._multi_seeds[i] = Hasher.Hasher.MurmurHash3(tmp);
+            this.intercepts[i] = 0;
+            this._a[i] = 0;
+            this._zeros[i] = 0;
+            this._mu_hat[i] = 0;
+            this._mu_bar[i] = 0;
+            this._mu[i] = 0;
+            this._z[i] = 0;
         }
     }
 
@@ -65,25 +100,27 @@ class Learner {
     {
         ulong n = data.length;
         stderr.writeln("Starting learning on ", n, " datapoints.");
-        float[] dual_vars = new float[n];
-        for(int i = 0; i < n; ++i)
+        float[] dual_vars;
+        if(_lossType != LossType.multiclass)
+            dual_vars = new float[n];
+        else
+            dual_vars = new float[n * this._n_classes];
+        for(int i = 0; i < dual_vars.length; ++i)
             dual_vars[i] = 0;
 
         uint ind = 0;
         float delta_gap = 1;
         float last_gap = 1;
-        float epsilon = 1e-8;
+        float epsilon = 1e-3;
         auto gap_task = task(_duality_gap, data, dual_vars, lambda);
         bool gotResult = true;
-        float div = 5;
         while( ind < n || delta_gap > epsilon)
         {
-            if(gotResult && ind > n && ind % to!int(n/div) == 0)
+            if(gotResult && ind > n)
             {
                 gap_task = task(_duality_gap, data, dual_vars, lambda);
                 gap_task.executeInNewThread();
                 gotResult = false;
-                div *= 2;
             }
             ulong index = this._next_rnd_index(n);
 
@@ -93,9 +130,10 @@ class Learner {
             if(gap_task.done())
             {
                 float gap = gap_task.yieldForce;
-                delta_gap = 0.8 * delta_gap + 0.2 * abs((gap - last_gap)/last_gap);
+                delta_gap = 0.01 * delta_gap + 0.99 * abs((gap - last_gap)/last_gap);
                 last_gap = gap;
                 gotResult = true;
+                stderr.writeln("Duality gap: ", gap);
             }
             ind += 1;
         }
@@ -130,7 +168,7 @@ class Learner {
 
     float conjugate_logistic(float x)
     {
-        if(x == 0.0)
+        if(x <= 0.0 || x >= 1.0)
             return 0;
         return x * log(x) + (1 - x) * log(1.0 - x);
     }
@@ -180,7 +218,7 @@ class Learner {
                                         ref float[] _mu_bar,
                                         ref float[] _z)
     {
-        uint k = mu.length;
+        ulong k = mu.length;
         for(int j = 0; j < k; ++j)
             _mu_hat[j] = max(0, mu[j]);
         sort!("a > b")(_mu_hat);
@@ -202,7 +240,7 @@ class Learner {
                 return true;
             }
         }
-        uint min_ind = k + 1;
+        ulong min_ind = k + 1;
         for(int j = 0; j < k; ++j)
             if(_z[j] == 1)
             {
@@ -212,7 +250,7 @@ class Learner {
 
         float norm_sq = 0;
         float diff_norm_sq = 0;
-        float tresh = (-_z[min_ind] + _mu_bar[min_ind])/(min_ind + 1);
+        float treshold = (-_z[min_ind] + _mu_bar[min_ind])/(min_ind + 1);
         for(int j = 0; j < k; ++j)
         {
             result[j] = max(0, mu[j] - treshold);
@@ -228,7 +266,9 @@ class Learner {
                                       ref float[] dual_vars,
                                       ulong index, float lambda)
     {
-
+        ulong n = data.length;
+        Observation ex = data[index];
+        //TODO
     }
 
 
