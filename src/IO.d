@@ -90,7 +90,6 @@ class InMemoryData {
         float label = -1;
 
         uint num_buff = 0;
-        bool dump_obs = false;
         while(!f.eof)
         {
             if(num_buff % 2 == 0)
@@ -117,7 +116,9 @@ class InMemoryData {
                         label_start = ind+1;
                         if(label_start == buff_size)
                             label_start = 0;
-                        dump_obs = true;
+                        //Dump current example into dataset:
+                        data ~= new Observation(label, current_features);
+                        current_features = new Feature[0];
                         break;
                     case ':':
                         feat_end = ind;
@@ -137,13 +138,6 @@ class InMemoryData {
                         break;
                     default: // eof
                         break;
-                }
-                if(dump_obs)
-                {
-                    //Dump current example into dataset:
-                    data ~= new Observation(label, current_features);
-                    current_features = new Feature[0];
-                    dump_obs = false;
                 }
                 ind++;
             }
