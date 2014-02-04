@@ -59,15 +59,22 @@ class InMemoryData {
         char[] last_buffer = bufferB;
         Feature[] current_features = new Feature[0];
 
-        int fill_split_buff(int ind_start, int ind_end)
+        char[] get_slice(int ind_start, int ind_end)
         {
-            int size_end = buff_size - ind_start;
-            int size_start = ind_end;
-            tmp_split_buff[0..size_end] = (
-                last_buffer[ind_start..buff_size]);
-            tmp_split_buff[size_end..size_end+size_start]=(
-                buffer[0..ind_end]);
-            return size_end + size_start;
+            if(ind_start < ind_end)
+            {
+                return buffer[ind_start..ind_end];
+            }
+            else // token needs to be reconstructed from the 2 buffers
+            {
+                int size_end = buff_size - ind_start;
+                int size_start = ind_end;
+                tmp_split_buff[0..size_end] = (
+                    last_buffer[ind_start..buff_size]);
+                tmp_split_buff[size_end..size_end+size_start]=(
+                    buffer[0..ind_end]);
+                return tmp_split_buff[0..size_end + size_start];
+            }
         }
 
         int feat_start = 0;
@@ -82,9 +89,8 @@ class InMemoryData {
         int label_end = 0;
         float label = -1;
 
-        bool new_line = true;
         uint num_buff = 0;
-        bool dump_last = false;
+        bool dump_obs = false;
         while(!f.eof)
         {
             if(num_buff % 2 == 0)
@@ -98,11 +104,6 @@ class InMemoryData {
             int ind = 0;
             while(ind < buff_size)
             {
-                if(new_line)
-                {
-                    label_start = ind;
-                    new_line =false;
-                }
                 switch(buffer[ind])
                 {
                     case '|':
@@ -110,66 +111,39 @@ class InMemoryData {
                         feat_start = ind + 1;
                         if(feat_start == buff_size)
                             feat_start = 0;
-                        if(label_start < label_end)
-                        {
-                            label = to!float(buffer[label_start..label_end]);
-                        }
-                        else
-                        {
-                            int ind_end = fill_split_buff(label_start, label_end);
-                            label = to!float(tmp_split_buff[0..ind_end]);
-                        }
+                        label = to!float(get_slice(label_start, label_end));
                         break;
                     case '\n':
-                        new_line = true;
                         label_start = ind+1;
                         if(label_start == buff_size)
                             label_start = 0;
-                        dump_last = true;
+                        dump_obs = true;
                         break;
                     case ':':
                         feat_end = ind;
                         val_start = ind+1;
                         if(val_start == buff_size)
                             val_start = 0;
-                        if(feat_start < feat_end)
-                        {
-                            feat_hash = Hasher.Hasher.MurmurHash3(
-                                buffer[feat_start..feat_end]) & bitMask;
-                        }
-                        else
-                        {
-                            int ind_end = fill_split_buff(feat_start, feat_end);
-                            feat_hash = Hasher.Hasher.MurmurHash3(
-                                tmp_split_buff[0..ind_end]) & bitMask;
-                        }
+                        feat_hash = Hasher.Hasher.MurmurHash3(
+                            get_slice(feat_start, feat_end)) & bitMask;
                         break;
                     case ' ':
                         val_end = ind;
                         feat_start = ind + 1;
                         if(feat_start == buff_size)
                             feat_start = 0;
-
-                        if(val_start < val_end)
-                        {
-                            feat_val = to!float(buffer[val_start..val_end]);
-                        }
-                        else
-                        {
-                            int ind_end = fill_split_buff(val_start, val_end);
-                            feat_val = to!float(tmp_split_buff[0..ind_end]);
-                        }
+                        feat_val = to!float(get_slice(val_start, val_end));
                         current_features ~= Feature(feat_hash, feat_val);
                         break;
                     default: // eof
                         break;
                 }
-                if(dump_last)
+                if(dump_obs)
                 {
                     //Dump current example into dataset:
                     data ~= new Observation(label, current_features);
                     current_features = new Feature[0];
-                    dump_last = false;
+                    dump_obs = false;
                 }
                 ind++;
             }
