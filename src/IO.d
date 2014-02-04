@@ -70,7 +70,6 @@ class InMemoryData {
             return size_end + size_start;
         }
 
-
         int feat_start = 0;
         int feat_end = 0;
         uint feat_hash = -1;
@@ -82,7 +81,6 @@ class InMemoryData {
         int label_start = 0;
         int label_end = 0;
         float label = -1;
-        bool seen_label = false;
 
         bool new_line = true;
         uint num_buff = 0;
@@ -101,12 +99,10 @@ class InMemoryData {
                 if(new_line)
                 {
                     label_start = ind;
-                    seen_label = false;
                     new_line =false;
                 }
                 if(buffer[ind] == '|')
                 {
-                    seen_label = true;
                     label_end = ind;
                     feat_start = ind + 1;
                     if(feat_start == buff_size)
@@ -149,7 +145,7 @@ class InMemoryData {
                     }
 
                 }
-                if((buffer[ind] == ' ' && seen_label) || dump_last)
+                if(buffer[ind] == ' ' || dump_last)
                 {
                     val_end = ind;
                     feat_start = ind + 1;
@@ -169,7 +165,7 @@ class InMemoryData {
 
                     if(dump_last)
                     {
-                        //DUMP Current example in dataset
+                        //Dump current example into dataset:
                         data ~= new Observation(label, current_features);
                         current_features = new Feature[0];
                         dump_last = false;
