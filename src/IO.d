@@ -50,7 +50,7 @@ class InMemoryData {
         Observation[] data;
         uint bitMask = (1 << bits) - 1;
 
-        uint buff_size = 20;
+        uint buff_size = 20000;
 
         char[] bufferA = new char[buff_size];
         char[] bufferB = new char[buff_size];
@@ -85,6 +85,7 @@ class InMemoryData {
         bool new_line = true;
         uint num_buff = 0;
         bool dump_last = false;
+        bool seen_label = false;
         while(!f.eof)
         {
             if(num_buff % 2 == 0)
@@ -103,6 +104,7 @@ class InMemoryData {
                 }
                 if(buffer[ind] == '|')
                 {
+                    seen_label = true;
                     label_end = ind;
                     feat_start = ind + 1;
                     if(feat_start == buff_size)
@@ -120,6 +122,7 @@ class InMemoryData {
 
                 else if(buffer[ind] == '\n')
                 {
+                    seen_label  =false;
                     new_line = true;
                     label_start = ind+1;
                     if(label_start == buff_size)
@@ -145,7 +148,7 @@ class InMemoryData {
                     }
 
                 }
-                if(buffer[ind] == ' ' || dump_last)
+                if((buffer[ind] == ' ' && seen_label)|| dump_last)
                 {
                     val_end = ind;
                     feat_start = ind + 1;
