@@ -52,9 +52,9 @@ class InMemoryData {
 
         uint buff_size = 20000;
 
-        char[] bufferA = new char[buff_size];
-        char[] bufferB = new char[buff_size];
-        char[] tmp_split_buff = new char[2 * buff_size];
+        char[20_000] bufferA;
+        char[20_000] bufferB;
+        char[40_000] tmp_split_buff;
         char[] buffer = bufferA;
         char[] last_buffer = bufferB;
         Feature[] current_features = new Feature[0];
@@ -110,7 +110,7 @@ class InMemoryData {
                         feat_start = ind + 1;
                         if(feat_start == buff_size)
                             feat_start = 0;
-                        label = to!float(get_slice(label_start, label_end));
+                        label = to_float(get_slice(label_start, label_end));
                         break;
                     case '\n':
                         label_start = ind+1;
@@ -133,7 +133,7 @@ class InMemoryData {
                         feat_start = ind + 1;
                         if(feat_start == buff_size)
                             feat_start = 0;
-                        feat_val = to!float(get_slice(val_start, val_end));
+                        feat_val = to_float(get_slice(val_start, val_end));
                         current_features ~= Feature(feat_hash, feat_val);
                         break;
                     default: // eof
