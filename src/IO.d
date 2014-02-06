@@ -10,7 +10,7 @@ import Hasher;
 
 alias Tuple!(uint, float) Feature;
 
-class Observation {
+struct Observation {
 
     float label;
     Feature[] features;
@@ -117,7 +117,7 @@ class InMemoryData {
                         if(label_start == buff_size)
                             label_start = 0;
                         //Dump current example into dataset:
-                        data ~= new Observation(label, current_features);
+                        data ~= Observation(label, current_features);
                         current_features = new Feature[0];
                         break;
                     case ':':
@@ -168,7 +168,7 @@ class InMemoryData {
                 feature_hash = feature_hash & bitMask;
                 features ~= Feature(feature_hash, to!float(str_tuple[1]));
             }
-            data ~= new Observation(label, features);
+            data ~= Observation(label, features);
         }
         return data;
     }
