@@ -3,12 +3,9 @@ module IO;
 import std.array;
 import std.conv;
 import std.stdio;
-import std.typecons;
 
 import Common;
 import Hasher;
-
-alias Tuple!(uint, float) Feature;
 
 struct Observation {
 

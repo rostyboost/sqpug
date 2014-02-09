@@ -5,6 +5,7 @@ import std.stdio;
 import Common;
 import IO;
 import Learner;
+import PredictionServer;
 import Serializer;
 
 
@@ -22,7 +23,9 @@ void main(string[] args) {
         "model_out", &opts.model_out,
         "model_in", &opts.model_in,
         "format", &opts.data_format,
-        "n_classes", &opts.n_classes);
+        "n_classes", &opts.n_classes,
+        "server", &opts.server_mod,
+        "port", &opts.server_port);
 
     Learner learner;
     if(opts.model_in == "")
@@ -37,6 +40,13 @@ void main(string[] args) {
 
     if(opts.model_out != "")
         Serializer.dump_model(learner, opts, opts.model_out);
+
+    if(opts.server_mod)
+    {
+        PredictionServer server = new PredictionServer(opts.server_port,
+                                                       learner);
+        server.serve_forever();
+    }
 
     if(opts.test != "")
     {
@@ -60,7 +70,7 @@ void main(string[] args) {
                 float pred_label = 1;
                 if(pred < 0.5)
                     pred_label = -1;
-                stdout.writeln(pred);
+                //stdout.writeln(pred);
                 if(pred_label * (2 * obs.label -1) < 0)
                     error += 1;
             }

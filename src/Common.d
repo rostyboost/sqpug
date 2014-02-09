@@ -1,6 +1,9 @@
 module Common;
 
 import std.ascii;
+import std.typecons;
+
+alias Tuple!(uint, float) Feature;
 
 enum LossType {
     squared = "squared",
@@ -28,11 +31,15 @@ struct Options {
     string model_in; // path from where to load the model
     DataFormat data_format;
     uint n_classes; // number of classes for multiclass
+
+    bool server_mod = false; // sqpug in prediction server mod?
+    ushort server_port = 7654;
 }
 
 // Simplified version of D source code float parser, specific to char[].
 // Doesn't handle Inf numbers nor Nan, and doesn't throw exceptions.
 // But it's fast!
+// Method under Boost Licence 1.0 at http://www.boost.org/LICENSE_1_0.txt
 float to_float(char[] p)
 {
     static immutable real[14] negtab =

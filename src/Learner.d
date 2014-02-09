@@ -17,6 +17,7 @@ class Learner {
 
     private Random _gen;
     float[] weights;
+    uint bits;
 
     float intercept;
 
@@ -39,9 +40,10 @@ class Learner {
     private uint[] _multi_seeds;
     private float[] intercepts;
 
-    this(const uint bits, const LossType loss, const uint n_classes)
+    this(const uint num_bits, const LossType loss, const uint n_classes)
     {
         _gen.seed(42);
+        this.bits = num_bits;
         this.weights = new float[1 << bits];
         for(int i = 0; i < this.weights.length; ++i)
             this.weights[i] = 0;
