@@ -3,7 +3,7 @@ module Common;
 import std.ascii;
 import std.typecons;
 
-alias Tuple!(uint, float) Feature;
+struct Feature { uint id; float val;}
 
 enum LossType {
     squared = "squared",

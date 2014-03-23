@@ -153,7 +153,7 @@ class Learner {
         float l2_norm_x = 0; // TODO: merge with former line
         foreach(Feature feat; ex.features)
         {
-            l2_norm_x += feat[1] * feat[1];
+            l2_norm_x += feat.val * feat.val;
         }
 
         float delta_dual = - (dual_vars[index] + pred - ex.label)/(
@@ -163,7 +163,7 @@ class Learner {
 
         foreach(Feature feat; ex.features)
         {
-            this.weights[feat[0]] += delta_dual * feat[1] / (lambda * n);
+            this.weights[feat.id] += delta_dual * feat.val / (lambda * n);
         }
         this.intercept += delta_dual / (lambda * n);
     }
@@ -190,7 +190,7 @@ class Learner {
         float l2_norm_x = 0; // TODO: merge with former line
         foreach(Feature feat; ex.features)
         {
-            l2_norm_x += feat[1] * feat[1];
+            l2_norm_x += feat.val * feat.val;
         }
 
         float q = -1.0/(1.0 + exp(-p)) - dual_vars[index];
@@ -208,7 +208,7 @@ class Learner {
 
         foreach(Feature feat; ex.features)
         {
-            this.weights[feat[0]] += -sgn * delta_dual * feat[1] / (lambda * n);
+            this.weights[feat.id] += -sgn * delta_dual * feat.val / (lambda * n);
         }
         this.intercept += -sgn * delta_dual / (lambda * n);
     }
@@ -332,7 +332,7 @@ class Learner {
     {
         float dotProd = this.intercept;
         foreach(Feature feat; features)
-            dotProd += this.weights[feat[0]] * feat[1];
+            dotProd += this.weights[feat.id] * feat.val;
         return dotProd;
     }
 
