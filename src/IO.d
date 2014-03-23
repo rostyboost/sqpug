@@ -1,5 +1,6 @@
 module IO;
 
+import core.atomic;
 import std.array;
 import std.conv;
 import std.stdio;
@@ -17,6 +18,67 @@ struct Observation {
         label = label_;
         features = features_;
     }
+}
+
+class ConcurrentQueue {
+// Thread-safe concurrent queue. Only safe for 1 producer, 1 consumer.
+// But lock-free, so should be fast.
+    Observation[] _buffer;
+    int _head;
+    int _tail;
+    int _size;
+    shared(int) _cnt;
+    bool done_inserting;
+
+    this(const uint size)
+    {
+        _head = 0;
+        _tail = -1;
+        _size = size;
+        done_inserting = false;
+        _buffer = new Observation[size];
+    }
+
+    public int counter()
+    {
+        return _cnt;
+    }
+
+    public int capacity()
+    {
+        return _size;
+    }
+
+    public bool push(Observation obs)
+    {
+        if(_cnt == _size)
+            return false;
+        ++_tail;
+        if(_tail == _size)
+            _tail = 0;
+        _buffer[_tail] = obs;
+
+        // increment _cnt
+        while (!cas(&_cnt, _cnt, _cnt + 1)){};
+
+        return true;
+    }
+
+    public bool pop(ref Observation obs)
+    {
+        if(_cnt == 0)
+            return false;
+        obs = _buffer[_head];
+        ++_head;
+        if(_head == _size)
+            _head = 0;
+
+        // decrement _cnt
+        while (!cas(&_cnt, _cnt, _cnt - 1)){};
+
+        return true;
+    }
+
 }
 
 class InMemoryData {
@@ -47,7 +109,7 @@ class InMemoryData {
         Observation[] data;
         uint bitMask = (1 << bits) - 1;
 
-        uint buff_size = 20000;
+        uint buff_size = 20_000;
 
         char[20_000] bufferA;
         char[20_000] bufferB;
