@@ -3,6 +3,7 @@ module IO;
 import core.atomic;
 import std.array;
 import std.conv;
+import std.parallelism;
 import std.stdio;
 
 import Common;
@@ -39,7 +40,7 @@ class ConcurrentQueue {
         _buffer = new Observation[size];
     }
 
-    public int counter()
+    public const int counter()
     {
         return _cnt;
     }
@@ -265,6 +266,52 @@ class StreamData {
 
 }
 
+class ThreadedStreamData {
+
+    private StreamData _stream;
+    private ConcurrentQueue _queue;
+    private Observation _currentObs;
+    Task!(run, void delegate(ref StreamData, ref ConcurrentQueue),
+          StreamData, ConcurrentQueue)* _taskFillQ;
+
+    this(const string file_path, uint bits)
+    {
+        _stream = new StreamData(file_path, bits);
+        _queue = new ConcurrentQueue(100);
+
+        // Start reading the stream in a thread
+        _taskFillQ = task(&fillQ, _stream, _queue);
+        _taskFillQ.executeInNewThread();
+        popFront();
+    }
+
+    private void fillQ(ref StreamData stream, ref ConcurrentQueue queue)
+    {
+        foreach(Observation obs; stream)
+            while(!queue.push(obs)){}
+        queue.done_inserting = true;
+    }
+
+    bool empty()
+    {
+        return _taskFillQ.done() && _queue.counter() == 0;
+    }
+
+    void popFront()
+    {
+        while(!_queue.pop(_currentObs))
+        {
+            if(empty())
+                return;
+        }
+    }
+
+    Observation front()
+    {
+        return _currentObs;
+    }
+}
+
 class InMemoryData {
 
     Observation[] data;
@@ -273,7 +320,7 @@ class InMemoryData {
 
     this(const string file_path, const ref Options opts)
     {
-        StreamData stream = new StreamData(file_path, opts.bits);
+        auto stream = new StreamData(file_path, opts.bits);
 
         foreach(Observation obs; stream)
         {
