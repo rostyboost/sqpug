@@ -116,7 +116,7 @@ class Learner {
         float epsilon = 1e-3;
         auto gap_task = task(_duality_gap, data, dual_vars, lambda);
         bool gotResult = true;
-        while( ind < n || delta_gap > epsilon)
+        while(ind < n || delta_gap > epsilon)
         {
             if(gotResult && ind > n)
             {
@@ -200,10 +200,15 @@ class Learner {
 
         float delta_dual = 1;
         if (q != 0)
+        {
+            float log1expp = p;
+            if (p <= 20)
+                log1expp = log(1 + exp(p));
             delta_dual = q * min(
             1,
-            (log(1 + exp(p)) + phi_star + p * alpha + 2 * q *q)/(
+            (log1expp + phi_star + p * alpha + 2 * q *q)/(
                q * q * (4 + l2_norm_x/(lambda * n))));
+        }
         dual_vars[index] += delta_dual;
 
         foreach(Feature feat; ex.features)
@@ -302,12 +307,14 @@ class Learner {
         ulong n = data.length;
         for(int i = 0; i < n; ++i)
         {
-            float p = (2*data[i].label - 1) * this.dotProd(data[i].features);
+            float p = -(2*data[i].label - 1) * this.dotProd(data[i].features);
             float conj = this.conjugate_logistic(-dual_vars[i]);
-            gap += log(1.0 + exp(p)) + conj;
+            float log1expp = p;
+            if(p <= 20)
+                log1expp = log(1.0 + exp(p));
+            gap += log1expp + conj;
         }
         gap /= n;
-
         gap += lambda * this.normsq_weights();
 
         return gap;
