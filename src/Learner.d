@@ -198,8 +198,8 @@ class Learner {
         float alpha = dual_vars[index];
         float phi_star = this.conjugate_logistic(-alpha);
 
-        float delta_dual = 1;
-        if (q != 0)
+        float delta_dual = q;
+        if (abs(q) > 1e-20)
         {
             float log1expp = p;
             if (p <= 20)
@@ -337,16 +337,16 @@ class Learner {
 
     float dotProd(ref Feature[] features)
     {
-        float dotProd = this.intercept;
+        float dp = this.intercept;
         foreach(Feature feat; features)
-            dotProd += this.weights[feat.id] * feat.val;
-        return dotProd;
+            dp += this.weights[feat.id] * feat.val;
+        return dp;
     }
 
     float predict_logistic(ref Feature[] features)
     {
-        float dotProd = this.dotProd(features);
-        return 1.0 / ( 1.0 + exp(-dotProd));
+        float dp = this.dotProd(features);
+        return 1.0 / ( 1.0 + exp(-dp));
     }
 
     void predict_multiclass_svm(const ref Feature[] features,
