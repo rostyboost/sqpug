@@ -30,6 +30,8 @@ interface IData {
     // Array like stuff. TODO: consider RandomInfinite Range instead
     Observation opIndex(size_t i);
     @property ulong length();
+
+    void rewind();
 }
 
 class ConcurrentQueue {
@@ -98,6 +100,7 @@ class StreamData : IData {
     private ulong _cnt;
     private bool _finished;
     private File _f;
+    private bool _isStdIn;
 
     Observation _currentObs;
 
@@ -151,9 +154,23 @@ class StreamData : IData {
         bitMask = (1 << bits) - 1;
 
         _f = stdin;
+        _isStdIn = true;
         if (file_path != "")
+        {
             _f = File(file_path, "r");
+            _isStdIn = false;
+        }
 
+        this._initializeState();
+    }
+
+    ~ this()
+    {
+        _f.close();
+    }
+
+    void _initializeState()
+    {
         _finished = false;
         _cnt = 0;
 
@@ -261,7 +278,6 @@ class StreamData : IData {
             if(_f.eof && _indBuffer == buff_size)
             {
                 _finished = true;
-                _f.close();
                 break;
             }
             last_buffer = buffer;
@@ -278,6 +294,14 @@ class StreamData : IData {
     Observation opIndex(size_t i) { return _currentObs; } // TODO: throw exception
 
     @property ulong length() { return _cnt; }
+
+    void rewind()
+    {
+        if(_isStdIn)
+            throw new Exception("stdin stream can't be rewound.");
+        _f.rewind();
+        this._initializeState();
+    }
 }
 
 class ThreadedStreamData : IData {
@@ -328,6 +352,18 @@ class ThreadedStreamData : IData {
     Observation opIndex(size_t i) { return _currentObs; } // TODO: throw exception
 
     @property ulong length() { return _stream.length; }
+
+    void rewind()
+    {
+        _stream.rewind();
+
+        _queue = new ConcurrentQueue(100);
+
+        // Start reading the stream in a thread
+        _taskFillQ = task(&fillQ, _stream, _queue);
+        _taskFillQ.executeInNewThread();
+        popFront();
+    }
 }
 
 class InMemoryData : IData {
