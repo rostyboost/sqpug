@@ -23,9 +23,11 @@ enum DataFormat {
 
 struct Options {
     string data; // input data path
-    ushort bits; // number of bits for hashing trick
-    LossType loss;
-    float lambda;
+    uint passes = 0; // number of (equivalent) passes during optimization
+                     // if default = 0, use duality gap criterion instead
+    ushort bits = 20; // number of bits for hashing trick
+    LossType loss = LossType.squared;
+    float lambda = 1.0;
     string test; // test data path
     string model_out; // path where to dump the model learnt
     string model_in; // path from where to load the model

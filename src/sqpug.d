@@ -1,6 +1,7 @@
 import std.conv;
 import std.getopt;
 import std.stdio;
+import std.random;
 
 import Common;
 import IO;
@@ -16,6 +17,7 @@ void main(string[] args) {
     getopt(
         args,
         "data", &opts.data,
+        "passes", &opts.passes,
         "bits", &opts.bits,
         "loss", &opts.loss,
         "lambda", &opts.lambda,
@@ -30,10 +32,10 @@ void main(string[] args) {
     Learner learner;
     if(opts.model_in == "")
     {
-        InMemoryData data = new InMemoryData(opts.data, opts);
+        IData data = new InMemoryData(opts.data, opts);
 
         learner = new Learner(opts.bits, opts.loss, opts.n_classes);
-        learner.learn(data.data, opts.lambda);
+        learner.learn(data, opts.passes, opts.lambda);
     }
     else
         learner = Serializer.load_model(opts.model_in);
@@ -53,6 +55,7 @@ void main(string[] args) {
         InMemoryData test_data = new InMemoryData(opts.test, opts);
 
         float error = 0;
+        float baseline_error = 0;
         if(opts.loss == LossType.squared)
         {
             foreach(Observation obs; test_data)
@@ -64,20 +67,51 @@ void main(string[] args) {
         }
         else
         {
+            Random gen;
+            gen.seed(42);
+            float av_pred = 0;
+            float av_label = 0;
+            long num_pos = 0;
+            long num_neg = 0;
+            foreach(Observation obs; test_data)
+            {
+                if(obs.label == 1.0)
+                {
+                    av_label += 1;
+                    num_pos += 1;
+                }
+                else
+                    num_neg += 1;
+                av_pred += learner.predict(obs.features);
+            }
+            av_pred /= test_data.data.length;
+            av_label /= test_data.data.length;
+            stderr.writeln("Average pred: ", av_pred);
+            stderr.writeln("Average label: ", av_label);
+            stderr.writeln(num_pos, " positives, ", num_neg, " negatives.");
+            test_data = new InMemoryData(opts.test, opts);
             foreach(Observation obs; test_data)
             {
                 float pred = learner.predict(obs.features);
-                float pred_label = 1;
-                if(pred < 0.5)
-                    pred_label = -1;
                 //stdout.writeln(pred);
+                float pred_label = 1;
+                if(pred < av_label)
+                    pred_label = -1;
                 if(pred_label * (2 * obs.label -1) < 0)
                     error += 1;
+
+                float base_pred = -1;
+                if(uniform(0.0f, 1.0f, gen) < av_label)
+                    base_pred = 1;
+                if(base_pred * (2 * obs.label -1) < 0)
+                    baseline_error += 1;
             }
         }
         error /= test_data.data.length;
+        baseline_error /= test_data.data.length;
 
         stderr.writeln("Total error: ", error);
+        stderr.writeln("Baseline error: ", baseline_error);
     }
 }
 

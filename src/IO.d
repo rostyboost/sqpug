@@ -21,6 +21,17 @@ struct Observation {
     }
 }
 
+interface IData {
+    // Basic InputRange<Observation> functions
+    bool empty();
+    void popFront();
+    Observation front();
+
+    // Array like stuff. TODO: consider RandomInfinite Range instead
+    Observation opIndex(size_t i);
+    @property ulong length();
+}
+
 class ConcurrentQueue {
 // Thread-safe concurrent queue. Only safe for 1 producer, 1 consumer.
 // But lock-free, so should be fast.
@@ -82,7 +93,7 @@ class ConcurrentQueue {
 
 }
 
-class StreamData {
+class StreamData : IData {
 
     private ulong _cnt;
     private bool _finished;
@@ -169,7 +180,7 @@ class StreamData {
         this.popFront();
     }
 
-    bool empty() const
+    bool empty()
     {
         return _finished;
     }
@@ -264,9 +275,12 @@ class StreamData {
         return _currentObs;
     }
 
+    Observation opIndex(size_t i) { return _currentObs; } // TODO: throw exception
+
+    @property ulong length() { return _cnt; }
 }
 
-class ThreadedStreamData {
+class ThreadedStreamData : IData {
 
     private StreamData _stream;
     private ConcurrentQueue _queue;
@@ -310,9 +324,13 @@ class ThreadedStreamData {
     {
         return _currentObs;
     }
+
+    Observation opIndex(size_t i) { return _currentObs; } // TODO: throw exception
+
+    @property ulong length() { return _stream.length; }
 }
 
-class InMemoryData {
+class InMemoryData : IData {
 
     Observation[] data;
 
@@ -343,5 +361,14 @@ class InMemoryData {
     Observation front()
     {
         return data[_current_cnt];
+    }
+
+    Observation opIndex(size_t i) { return data[i]; }
+
+    @property ulong length() { return data.length; }
+
+    void rewind()
+    {
+        this._current_cnt = 0;
     }
 }

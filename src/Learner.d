@@ -21,8 +21,8 @@ class Learner {
 
     float intercept;
 
-    private void delegate(ref Observation[], ref float[], ulong, float) _learn_internal;
-    private float delegate(ref Observation[], ref float[], float) _duality_gap;
+    private void delegate(ref IData, ref float[], ulong, float) _learn_internal;
+    private float delegate(ref IData, ref float[], float) _duality_gap;
 
     float delegate(ref Feature[]) predict;
     void delegate(const ref Feature[], ref float[] scores) predict_multiclass;
@@ -98,7 +98,7 @@ class Learner {
         return uniform(0, n, _gen);
     }
 
-    public void learn(ref Observation[] data, float lambda)
+    public void learn(ref IData data, uint passes, float lambda)
     {
         ulong n = data.length;
         stderr.writeln("Starting learning on ", n, " datapoints.");
@@ -111,13 +111,15 @@ class Learner {
             dual_vars[i] = 0;
 
         uint ind = 0;
-        float delta_gap = 1;
+        float delta_gap = float.max;
         float last_gap = 1;
         float epsilon = 1e-3;
         auto gap_task = task(_duality_gap, data, dual_vars, lambda);
         bool gotResult = true;
-        while(ind < n || delta_gap > epsilon)
+        while((ind < n || delta_gap > epsilon) || (passes > 0 && ind < n * passes))
         {
+            if(passes > 0 && ind == n * passes)
+                break;
             if(gotResult && ind > n)
             {
                 gap_task = task(_duality_gap, data, dual_vars, lambda);
@@ -132,7 +134,7 @@ class Learner {
             if(gap_task.done())
             {
                 float gap = gap_task.yieldForce;
-                delta_gap = 0.01 * delta_gap + 0.99 * abs((gap - last_gap)/last_gap);
+                delta_gap = abs((gap - last_gap)/last_gap);
                 last_gap = gap;
                 gotResult = true;
                 stderr.writeln("Duality gap: ", gap);
@@ -142,7 +144,7 @@ class Learner {
         stderr.writeln("Stopped SDCA after ", ind, " sampled points.");
     }
 
-    private void learn_squared(ref Observation[] data,
+    private void learn_squared(ref IData data,
                                ref float[] dual_vars,
                                ulong index, float lambda)
     {
@@ -175,7 +177,7 @@ class Learner {
         return x * log(x) + (1 - x) * log(1.0 - x);
     }
 
-    private void learn_logistic(ref Observation[] data,
+    private void learn_logistic(ref IData data,
                                 ref float[] dual_vars,
                                 ulong index, float lambda)
     {
@@ -269,7 +271,7 @@ class Learner {
         return false;
     }
 
-    private void learn_multiclass_svm(ref Observation[] data,
+    private void learn_multiclass_svm(ref IData data,
                                       ref float[] dual_vars,
                                       ulong index, float lambda)
     {
@@ -279,7 +281,7 @@ class Learner {
     }
 
 
-    private float duality_gap_squared(ref Observation[] data,
+    private float duality_gap_squared(ref IData data,
                                       ref float[] dual_vars,
                                       float lambda)
     {
@@ -299,7 +301,7 @@ class Learner {
         return gap;
     }
 
-    private float duality_gap_logistic(ref Observation[] data,
+    private float duality_gap_logistic(ref IData data,
                                        ref float[] dual_vars,
                                        float lambda)
     {
@@ -320,7 +322,7 @@ class Learner {
         return gap;
     }
 
-    private float duality_gap_multiclass_svm(ref Observation[] data,
+    private float duality_gap_multiclass_svm(ref IData data,
                                              ref float[] dual_vars,
                                              float lambda)
     {
