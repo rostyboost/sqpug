@@ -148,6 +148,8 @@ class StreamData : IData {
     uint num_buff;
     int _indBuffer;
 
+    int _numFeatures;
+
 
     this(const string file_path, int bits)
     {
@@ -176,7 +178,8 @@ class StreamData : IData {
 
         buffer = bufferA;
         last_buffer = bufferB;
-        current_features.length = 0;
+        current_features.length = 100;
+        _numFeatures = 0;
 
         feat_start = 0;
         feat_end = 0;
@@ -224,6 +227,8 @@ class StreamData : IData {
                 if(feat_start == buff_size)
                     feat_start = 0;
                 label = to_float(get_slice(label_start, label_end));
+                _numFeatures = 0;
+                current_features.length = 100;
                 break;
             case '\n':
                 label_start = _indBuffer + 1;
@@ -232,10 +237,11 @@ class StreamData : IData {
                 //Last feature value:
                 val_end = _indBuffer;
                 feat_val = to_float(get_slice(val_start, val_end));
-                current_features ~= Feature(feat_hash, feat_val);
+                current_features[_numFeatures] = Feature(feat_hash, feat_val);
+                _numFeatures++;
+                current_features.length = _numFeatures;
                 //Current example is ready:
                 _currentObs = Observation(label, current_features);
-                current_features = new Feature[0];
                 return true;
                 break;
             case ':':
@@ -252,7 +258,8 @@ class StreamData : IData {
                 if(feat_start == buff_size)
                     feat_start = 0;
                 feat_val = to_float(get_slice(val_start, val_end));
-                current_features ~= Feature(feat_hash, feat_val);
+                current_features[_numFeatures] = Feature(feat_hash, feat_val);
+                _numFeatures++;
                 break;
             default:
                 break;
@@ -378,7 +385,8 @@ class InMemoryData : IData {
 
         foreach(Observation obs; stream)
         {
-            data ~= obs;
+            Feature[] cp_feats = obs.features.dup;
+            data ~= Observation(obs.label, cp_feats);
         }
 
         this._current_cnt = 0;
