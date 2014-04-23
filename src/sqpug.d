@@ -52,7 +52,7 @@ void main(string[] args) {
 
     if(opts.test != "")
     {
-        InMemoryData test_data = new InMemoryData(opts.test, opts);
+        IData test_data = new StreamData(opts.test, opts.bits);
 
         float error = 0;
         float baseline_error = 0;
@@ -84,12 +84,12 @@ void main(string[] args) {
                     num_neg += 1;
                 av_pred += learner.predict(obs.features);
             }
-            av_pred /= test_data.data.length;
-            av_label /= test_data.data.length;
+            av_pred /= test_data.length;
+            av_label /= test_data.length;
             stderr.writeln("Average pred: ", av_pred);
             stderr.writeln("Average label: ", av_label);
             stderr.writeln(num_pos, " positives, ", num_neg, " negatives.");
-            test_data = new InMemoryData(opts.test, opts);
+            test_data.rewind();
             foreach(Observation obs; test_data)
             {
                 float pred = learner.predict(obs.features);
@@ -107,8 +107,8 @@ void main(string[] args) {
                     baseline_error += 1;
             }
         }
-        error /= test_data.data.length;
-        baseline_error /= test_data.data.length;
+        error /= test_data.length;
+        baseline_error /= test_data.length;
 
         stderr.writeln("Total error: ", error);
         stderr.writeln("Baseline error: ", baseline_error);
