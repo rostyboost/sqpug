@@ -228,7 +228,6 @@ class StreamData : IData {
                     feat_start = 0;
                 label = to_float(get_slice(label_start, label_end));
                 _numFeatures = 0;
-                current_features.length = 100;
                 break;
             case '\n':
                 label_start = _indBuffer + 1;
@@ -237,6 +236,8 @@ class StreamData : IData {
                 //Last feature value:
                 val_end = _indBuffer;
                 feat_val = to_float(get_slice(val_start, val_end));
+                if(_numFeatures == current_features.length)
+                    current_features.length *= 2;
                 current_features[_numFeatures] = Feature(feat_hash, feat_val);
                 _numFeatures++;
                 current_features.length = _numFeatures;
@@ -258,6 +259,8 @@ class StreamData : IData {
                 if(feat_start == buff_size)
                     feat_start = 0;
                 feat_val = to_float(get_slice(val_start, val_end));
+                if(_numFeatures == current_features.length)
+                    current_features.length *= 2;
                 current_features[_numFeatures] = Feature(feat_hash, feat_val);
                 _numFeatures++;
                 break;
