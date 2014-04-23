@@ -211,8 +211,7 @@ class StreamData : IData {
             buffer = bufferA;
         else
             buffer = bufferB;
-        for(int i = 0; i < buff_size; ++i)
-            buffer[i] = '\t';
+        buffer[] = '\t';
         _f.rawRead(buffer);
         _indBuffer = 0;
     }
