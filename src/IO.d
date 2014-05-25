@@ -115,7 +115,7 @@ class StreamData : IData {
     char[] last_buffer;
     Feature[] current_features;
 
-    char[] get_slice(int ind_start, int ind_end)
+    char[] get_slice(int ind_start, int ind_end) nothrow @safe
     {
         if(ind_start < ind_end)
         {
@@ -200,7 +200,7 @@ class StreamData : IData {
         this.popFront();
     }
 
-    bool empty()
+    bool empty() nothrow @safe
     {
         return _finished;
     }
@@ -399,7 +399,7 @@ class InMemoryData : IData {
         return _current_cnt == data.length;
     }
 
-    void popFront()
+    void popFront() nothrow @safe
     {
         ++_current_cnt;
     }

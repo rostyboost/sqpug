@@ -42,7 +42,7 @@ struct Options {
 // Doesn't handle Inf numbers nor Nan, and doesn't throw exceptions.
 // But it's fast!
 // Method under Boost Licence 1.0 at http://www.boost.org/LICENSE_1_0.txt
-float to_float(char[] p)
+float to_float(char[] p) pure
 {
     static immutable real[14] negtab =
         [ 1e-4096L,1e-2048L,1e-1024L,1e-512L,1e-256L,1e-128L,1e-64L,1e-32L,

@@ -170,7 +170,7 @@ class Learner {
         this.intercept += delta_dual / (lambda * n);
     }
 
-    float conjugate_logistic(float x)
+    float conjugate_logistic(float x) pure nothrow @safe
     {
         if(x <= 0.0 || x >= 1.0)
             return 0;
@@ -329,7 +329,7 @@ class Learner {
         return 0;
     }
 
-    float normsq_weights()
+    float normsq_weights() nothrow @safe
     {
         float normsq = 0;
         foreach(float w; this.weights)
@@ -337,7 +337,7 @@ class Learner {
         return normsq;
     }
 
-    float dotProd(ref Feature[] features)
+    float dotProd(ref Feature[] features) nothrow @safe
     {
         float dp = this.intercept;
         foreach(Feature feat; features)
@@ -345,7 +345,7 @@ class Learner {
         return dp;
     }
 
-    float predict_logistic(ref Feature[] features)
+    float predict_logistic(ref Feature[] features) nothrow @safe
     {
         float dp = this.dotProd(features);
         return 1.0 / ( 1.0 + exp(-dp));

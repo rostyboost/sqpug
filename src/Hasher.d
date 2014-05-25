@@ -6,13 +6,13 @@ class Hasher {
     //
     // Original C++ source code at: https://code.google.com/p/smhasher/
 
-    private static uint _rotl32(uint x, int r)
+    private static uint _rotl32(uint x, int r) pure nothrow @safe
     {
         return (x << r) | (x >> (32 - r));
     }
 
     // Finalization mix - force all bits of a hash block to avalanche
-    private static uint fmix32(uint h)
+    private static uint fmix32(uint h) pure nothrow @safe
     {
       h ^= h >> 16;
       h *= 0x85ebca6b;
@@ -23,7 +23,7 @@ class Hasher {
       return h;
     }
 
-    public static uint MurmurHash3(char[] key, uint seed = 42)
+    public static uint MurmurHash3(char[] key, uint seed = 42) pure nothrow
     {
       const ubyte * data = cast(const(ubyte*))key;
       uint len = cast(uint)key.length;
