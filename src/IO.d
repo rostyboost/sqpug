@@ -6,6 +6,7 @@ import std.conv;
 import std.parallelism;
 import std.stdio;
 
+import Constants;
 import Common;
 import Hasher;
 
@@ -106,11 +107,9 @@ class StreamData : IData {
 
     uint bitMask;
 
-    uint buff_size = 20_000;
-
-    char[20_000] bufferA;
-    char[20_000] bufferB;
-    char[40_000] tmp_split_buff;
+    char[BUFFER_SIZE] bufferA;
+    char[BUFFER_SIZE] bufferB;
+    char[2 * BUFFER_SIZE] tmp_split_buff;
     char[] buffer;
     char[] last_buffer;
     Feature[] current_features;
@@ -123,10 +122,10 @@ class StreamData : IData {
         }
         else // token needs to be reconstructed from the 2 buffers
         {
-            int size_end = buff_size - ind_start;
+            int size_end = BUFFER_SIZE - ind_start;
             int size_start = ind_end;
             tmp_split_buff[0..size_end] = (
-                last_buffer[ind_start..buff_size]);
+                last_buffer[ind_start..BUFFER_SIZE]);
             tmp_split_buff[size_end..size_end+size_start]=(
                 buffer[0..ind_end]);
             return tmp_split_buff[0..size_end + size_start];
@@ -220,17 +219,17 @@ class StreamData : IData {
     {
         switch(buffer[_indBuffer])
         {
-            case '|':
+            case LABEL_SEPARATOR:
                 label_end = _indBuffer;
                 feat_start = _indBuffer + 1;
-                if(feat_start == buff_size)
+                if(feat_start == BUFFER_SIZE)
                     feat_start = 0;
                 label = to_float(get_slice(label_start, label_end));
                 _numFeatures = 0;
                 break;
-            case '\n':
+            case LINE_SEPARATOR:
                 label_start = _indBuffer + 1;
-                if(label_start == buff_size)
+                if(label_start == BUFFER_SIZE)
                     label_start = 0;
                 //Last feature value:
                 val_end = _indBuffer;
@@ -244,18 +243,18 @@ class StreamData : IData {
                 _currentObs = Observation(label, current_features);
                 return true;
                 break;
-            case ':':
+            case FEATURE_SEPARATOR:
                 feat_end = _indBuffer;
                 val_start = _indBuffer+1;
-                if(val_start == buff_size)
+                if(val_start == BUFFER_SIZE)
                     val_start = 0;
                 feat_hash = Hasher.Hasher.MurmurHash3(
                     get_slice(feat_start, feat_end)) & bitMask;
                 break;
-            case ' ':
+            case TOKEN_SEPARATOR:
                 val_end = _indBuffer;
                 feat_start = _indBuffer + 1;
-                if(feat_start == buff_size)
+                if(feat_start == BUFFER_SIZE)
                     feat_start = 0;
                 feat_val = to_float(get_slice(val_start, val_end));
                 if(_numFeatures == current_features.length)
@@ -274,7 +273,7 @@ class StreamData : IData {
         bool nextReady = false;
         while(!nextReady)
         {
-            while(_indBuffer < buff_size)
+            while(_indBuffer < BUFFER_SIZE)
             {
                 nextReady = _processToken();
                 _indBuffer++;
@@ -284,7 +283,7 @@ class StreamData : IData {
                     return;
                 }
             }
-            if(_f.eof && _indBuffer == buff_size)
+            if(_f.eof && _indBuffer == BUFFER_SIZE)
             {
                 _finished = true;
                 break;
