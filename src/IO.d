@@ -149,6 +149,8 @@ class StreamData : IData {
 
     int _numFeatures;
 
+    bool cont_val;
+
 
     this(const string file_path, int bits)
     {
@@ -195,6 +197,8 @@ class StreamData : IData {
         num_buff = 0;
         _indBuffer = 0;
 
+        cont_val = false;
+
         this._loadBuffer();
         this.popFront();
     }
@@ -221,19 +225,28 @@ class StreamData : IData {
         {
             case LABEL_SEPARATOR:
                 label_end = _indBuffer;
+                label = to_float(get_slice(label_start, label_end));
+                _numFeatures = 0;
+
+                // next token has to be a feature id
                 feat_start = _indBuffer + 1;
                 if(feat_start == BUFFER_SIZE)
                     feat_start = 0;
-                label = to_float(get_slice(label_start, label_end));
-                _numFeatures = 0;
                 break;
             case LINE_SEPARATOR:
-                label_start = _indBuffer + 1;
-                if(label_start == BUFFER_SIZE)
-                    label_start = 0;
                 //Last feature value:
-                val_end = _indBuffer;
-                feat_val = to_float(get_slice(val_start, val_end));
+                if(cont_val)
+                {
+                    val_end = _indBuffer;
+                    feat_val = to_float(get_slice(val_start, val_end));
+                }
+                else  // binary feature
+                {
+                    feat_end = _indBuffer;
+                    feat_hash = Hasher.Hasher.MurmurHash3(
+                        get_slice(feat_start, feat_end)) & bitMask;
+                    feat_val = 1.0f;
+                }
                 if(_numFeatures == current_features.length)
                     current_features.length *= 2;
                 current_features[_numFeatures] = Feature(feat_hash, feat_val);
@@ -241,26 +254,48 @@ class StreamData : IData {
                 current_features.length = _numFeatures;
                 //Current example is ready:
                 _currentObs = Observation(label, current_features);
+
+                // next token has to be the label on next line
+                label_start = _indBuffer + 1;
+                if(label_start == BUFFER_SIZE)
+                    label_start = 0;
+                cont_val = false;
                 return true;
                 break;
             case FEATURE_SEPARATOR:
                 feat_end = _indBuffer;
-                val_start = _indBuffer+1;
-                if(val_start == BUFFER_SIZE)
-                    val_start = 0;
                 feat_hash = Hasher.Hasher.MurmurHash3(
                     get_slice(feat_start, feat_end)) & bitMask;
+
+                // next token has to be a continuous value
+                val_start = _indBuffer + 1;
+                if(val_start == BUFFER_SIZE)
+                    val_start = 0;
+                cont_val = true;
                 break;
             case TOKEN_SEPARATOR:
-                val_end = _indBuffer;
-                feat_start = _indBuffer + 1;
-                if(feat_start == BUFFER_SIZE)
-                    feat_start = 0;
-                feat_val = to_float(get_slice(val_start, val_end));
+                if(cont_val)
+                {
+                    val_end = _indBuffer;
+                    feat_val = to_float(get_slice(val_start, val_end));
+                }
+                else  // binary feature
+                {
+                    feat_end = _indBuffer;
+                    feat_hash = Hasher.Hasher.MurmurHash3(
+                        get_slice(feat_start, feat_end)) & bitMask;
+                    feat_val = 1.0f;
+                }
                 if(_numFeatures == current_features.length)
                     current_features.length *= 2;
                 current_features[_numFeatures] = Feature(feat_hash, feat_val);
                 _numFeatures++;
+
+                // next token is either a feature id or eol
+                feat_start = _indBuffer + 1;
+                if(feat_start == BUFFER_SIZE)
+                    feat_start = 0;
+                cont_val = false;
                 break;
             default:
                 break;
