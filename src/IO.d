@@ -286,7 +286,8 @@ class StreamData : IData {
                 cont_val = false;
                 return true;
                 break;
-            case FEATURE_SEPARATOR:
+            static if(!BINARY_FEATURES_ONLY){
+            case CONTINUOUS_FEATURE_SEPARATOR:
                 feat_end = _indBuffer;
                 feat_hash = Hasher.Hasher.MurmurHash3(
                     get_slice(feat_start, feat_end)) & bitMask;
@@ -296,7 +297,7 @@ class StreamData : IData {
                 if(val_start == buffer.length)
                     val_start = 0;
                 cont_val = true;
-                break;
+                break;}
             case TOKEN_SEPARATOR:
                 if(cont_val)
                 {

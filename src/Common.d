@@ -4,6 +4,7 @@ import std.ascii;
 import std.typecons;
 
 struct Feature { uint id; float val;}
+alias BinaryFeature = uint;
 
 enum LossType {
     squared = "squared",
