@@ -114,7 +114,7 @@ class StreamData : IData {
     char[] last_buffer;
     Feature[] current_features;
 
-    char[] get_slice(int ind_start, int ind_end) nothrow @safe
+    char[] get_slice(ulong ind_start, ulong ind_end) nothrow @safe
     {
         if(ind_start < ind_end)
         {
@@ -122,8 +122,8 @@ class StreamData : IData {
         }
         else // token needs to be reconstructed from the 2 buffers
         {
-            int size_end = BUFFER_SIZE - ind_start;
-            int size_start = ind_end;
+            ulong size_end = BUFFER_SIZE - ind_start;
+            ulong size_start = ind_end;
             tmp_split_buff[0..size_end] = (
                 last_buffer[ind_start..BUFFER_SIZE]);
             tmp_split_buff[size_end..size_end+size_start]=(
@@ -132,22 +132,22 @@ class StreamData : IData {
         }
     }
 
-    int feat_start;
-    int feat_end;
+    ulong feat_start;
+    ulong feat_end;
     uint feat_hash;
 
-    int val_start;
-    int val_end;
+    ulong val_start;
+    ulong val_end;
     float feat_val;
 
-    int label_start;
-    int label_end;
+    ulong label_start;
+    ulong label_end;
     float label;
 
     uint num_buff;
-    int _indBuffer;
+    ulong _indBuffer;
 
-    int _numFeatures;
+    ulong _numFeatures;
 
     bool cont_val;
 
@@ -210,12 +210,11 @@ class StreamData : IData {
 
     private void _loadBuffer()
     {
-        if(num_buff % 2 == 0)
+        if((num_buff & 1) == 0)
             buffer = bufferA;
         else
             buffer = bufferB;
-        buffer[] = '\t';
-        _f.rawRead(buffer);
+        buffer = _f.rawRead(buffer);
         _indBuffer = 0;
     }
 
@@ -308,7 +307,7 @@ class StreamData : IData {
         bool nextReady = false;
         while(!nextReady)
         {
-            while(_indBuffer < BUFFER_SIZE)
+            while(_indBuffer < buffer.length)
             {
                 nextReady = _processToken();
                 _indBuffer++;
@@ -318,7 +317,7 @@ class StreamData : IData {
                     return;
                 }
             }
-            if(_f.eof && _indBuffer == BUFFER_SIZE)
+            if(_f.eof && _indBuffer == buffer.length)
             {
                 _finished = true;
                 break;
