@@ -3,8 +3,10 @@ module IO;
 import core.atomic;
 import std.array;
 import std.conv;
+import std.path;
 import std.parallelism;
 import std.stdio;
+import std.zlib;
 
 import Constants;
 import Common;
@@ -114,18 +116,22 @@ class StreamData : IData {
     char[] last_buffer;
     Feature[] current_features;
 
+    void delegate() _loadBuffer;
+    UnCompress uncomp;
+    char[] comp_buff;
+
     char[] get_slice(ulong ind_start, ulong ind_end) nothrow @safe
     {
-        if(ind_start < ind_end)
+        if(ind_start <= ind_end)
         {
             return buffer[ind_start..ind_end];
         }
         else // token needs to be reconstructed from the 2 buffers
         {
-            ulong size_end = BUFFER_SIZE - ind_start;
+            ulong size_end = last_buffer.length - ind_start;
             ulong size_start = ind_end;
             tmp_split_buff[0..size_end] = (
-                last_buffer[ind_start..BUFFER_SIZE]);
+                last_buffer[ind_start..last_buffer.length]);
             tmp_split_buff[size_end..size_end+size_start]=(
                 buffer[0..ind_end]);
             return tmp_split_buff[0..size_end + size_start];
@@ -158,10 +164,16 @@ class StreamData : IData {
 
         _f = stdin;
         _isStdIn = true;
+        _loadBuffer = &_readBuffer;
         if (file_path != "")
         {
-            _f = File(file_path, "r");
             _isStdIn = false;
+            _f = File(file_path, "r");
+            if(extension(file_path) == ".gz")
+            {
+                _loadBuffer = &_readGzBuffer;
+                uncomp = new UnCompress(HeaderFormat.gzip);
+            }
         }
 
         this._initializeState();
@@ -208,7 +220,7 @@ class StreamData : IData {
         return _finished;
     }
 
-    private void _loadBuffer()
+    private void _readBuffer()
     {
         if((num_buff & 1) == 0)
             buffer = bufferA;
@@ -216,6 +228,19 @@ class StreamData : IData {
             buffer = bufferB;
         buffer = _f.rawRead(buffer);
         _indBuffer = 0;
+    }
+
+    private void _readGzBuffer()
+    {
+        if((num_buff & 1) == 0)
+            comp_buff = bufferA;
+        else
+            comp_buff = bufferB;
+        comp_buff = _f.rawRead(comp_buff);
+        buffer = to!(char[])(uncomp.uncompress(comp_buff));
+        _indBuffer = 0;
+        if(buffer.length == 0)
+            _readGzBuffer();
     }
 
     private bool _processToken()
@@ -229,7 +254,7 @@ class StreamData : IData {
 
                 // next token has to be a feature id
                 feat_start = _indBuffer + 1;
-                if(feat_start == BUFFER_SIZE)
+                if(feat_start == buffer.length)
                     feat_start = 0;
                 break;
             case LINE_SEPARATOR:
@@ -256,7 +281,7 @@ class StreamData : IData {
 
                 // next token has to be the label on next line
                 label_start = _indBuffer + 1;
-                if(label_start == BUFFER_SIZE)
+                if(label_start == buffer.length)
                     label_start = 0;
                 cont_val = false;
                 return true;
@@ -268,7 +293,7 @@ class StreamData : IData {
 
                 // next token has to be a continuous value
                 val_start = _indBuffer + 1;
-                if(val_start == BUFFER_SIZE)
+                if(val_start == buffer.length)
                     val_start = 0;
                 cont_val = true;
                 break;
@@ -292,7 +317,7 @@ class StreamData : IData {
 
                 // next token is either a feature id or eol
                 feat_start = _indBuffer + 1;
-                if(feat_start == BUFFER_SIZE)
+                if(feat_start == buffer.length)
                     feat_start = 0;
                 cont_val = false;
                 break;
