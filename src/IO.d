@@ -3,6 +3,7 @@ module IO;
 import core.atomic;
 import std.array;
 import std.conv;
+import std.file;
 import std.path;
 import std.parallelism;
 import std.process;
@@ -99,7 +100,66 @@ class ConcurrentQueue {
 
 }
 
+
 class StreamData : IData {
+
+    string[] _filePaths;
+    ulong _fileInd;
+    StreamFileData _currentStream;
+    int _bits;
+
+    this(const string data_path, int bits)
+    {
+        _bits = bits;
+        _fileInd = 0;
+        if(data_path != "" && isDir(data_path))
+        {
+            foreach(string name; dirEntries(data_path, SpanMode.depth))
+                _filePaths ~= name;
+        }
+        else
+            _filePaths ~= data_path;
+        stderr.writeln("Reading ", _filePaths[0], "...");
+        _currentStream = new StreamFileData(_filePaths[0], _bits);
+    }
+
+    bool empty() nothrow @safe
+    {
+        return (_fileInd == _filePaths.length - 1 &&
+                _currentStream.empty());
+    }
+
+    void popFront()
+    {
+        if(_currentStream.empty() && _fileInd < _filePaths.length - 1)
+        {
+            _fileInd++;
+            stderr.writeln("Reading ", _filePaths[_fileInd], "...");
+            _currentStream = new StreamFileData(_filePaths[_fileInd], _bits);
+        }
+        if(!_currentStream.empty())
+            _currentStream.popFront();
+    }
+
+    Observation front()
+    {
+        return _currentStream.front();
+    }
+
+    Observation opIndex(size_t i) {
+        throw new Exception("Can't index a stream"); }
+
+    @property ulong length() { return 0; } // TODO
+
+    void rewind()
+    {
+        _fileInd = 0;
+        _currentStream = new StreamFileData(_filePaths[0], _bits);
+        _currentStream.rewind();
+    }
+}
+
+class StreamFileData : IData {
 
     private ulong _cnt;
     private bool _finished;
@@ -435,11 +495,17 @@ class InMemoryData : IData {
     {
         auto stream = new StreamData(file_path, opts.bits);
 
+        ulong cnt = 0;
+        data.length = 1;
         foreach(Observation obs; stream)
         {
             Feature[] cp_feats = obs.features.dup;
-            data ~= Observation(obs.label, cp_feats);
+            if(data.length == cnt)
+                data.length *= 2;
+            data[cnt] = Observation(obs.label, cp_feats);
+            ++cnt;
         }
+        data.length = cnt;
 
         this._current_cnt = 0;
     }
