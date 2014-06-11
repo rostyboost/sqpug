@@ -5,6 +5,7 @@ import std.array;
 import std.conv;
 import std.path;
 import std.parallelism;
+import std.process;
 import std.stdio;
 import std.zlib;
 
@@ -104,6 +105,7 @@ class StreamData : IData {
     private bool _finished;
     private File _f;
     private bool _isStdIn;
+    private bool _isGz;
 
     Observation _currentObs;
 
@@ -116,9 +118,7 @@ class StreamData : IData {
     char[] last_buffer;
     Feature[] current_features;
 
-    void delegate() _loadBuffer;
-    UnCompress uncomp;
-    char[] comp_buff;
+    ProcessPipes _gzPipe;
 
     char[] get_slice(ulong ind_start, ulong ind_end) nothrow @safe
     {
@@ -164,15 +164,17 @@ class StreamData : IData {
 
         _f = stdin;
         _isStdIn = true;
-        _loadBuffer = &_readBuffer;
+        _isGz = false;
         if (file_path != "")
         {
             _isStdIn = false;
             _f = File(file_path, "r");
             if(extension(file_path) == ".gz")
             {
-                _loadBuffer = &_readGzBuffer;
-                uncomp = new UnCompress(HeaderFormat.gzip);
+                _isGz = true;
+                _gzPipe = pipeProcess(["gunzip", "-c", file_path],
+                                      Redirect.stdout);
+                _f = _gzPipe.stdout;
             }
         }
 
@@ -220,7 +222,7 @@ class StreamData : IData {
         return _finished;
     }
 
-    private void _readBuffer()
+    private void _loadBuffer()
     {
         if((num_buff & 1) == 0)
             buffer = bufferA;
@@ -228,19 +230,6 @@ class StreamData : IData {
             buffer = bufferB;
         buffer = _f.rawRead(buffer);
         _indBuffer = 0;
-    }
-
-    private void _readGzBuffer()
-    {
-        if((num_buff & 1) == 0)
-            comp_buff = bufferA;
-        else
-            comp_buff = bufferB;
-        comp_buff = _f.rawRead(comp_buff);
-        buffer = to!(char[])(uncomp.uncompress(comp_buff));
-        _indBuffer = 0;
-        if(buffer.length == 0)
-            _readGzBuffer();
     }
 
     private bool _processToken()
@@ -346,6 +335,8 @@ class StreamData : IData {
             if(_f.eof && _indBuffer == buffer.length)
             {
                 _finished = true;
+                if(_isGz)
+                    assert(wait(_gzPipe.pid) == 0);
                 break;
             }
             last_buffer = buffer;
